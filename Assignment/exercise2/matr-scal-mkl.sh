@@ -16,6 +16,6 @@ echo "Running executables..."
 output=$(srun -n1 --cpus-per-task=64 ./gemm_mkl.x)
 
 echo "$output" | grep "Currently" >> counter.txt
-echo "$output" | grep "GFLOPS" >> mkl-output.txt
+echo "$output" | grep "GFLOPS" >> mkl-output2.txt
 
 echo "Finished."
