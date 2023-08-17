@@ -37,6 +37,7 @@
 #define GEMMCPU cblas_dgemm
 #endif
 
+//struct timespec is defined in time.h -> holds an interval in s and ns
 struct timespec diff(struct timespec start, struct timespec end)
 {
         struct timespec temp;
@@ -60,7 +61,7 @@ int main(int argc, char** argv)
     double elapsed;
     if (argc == 1)
     {
-    m = 2000, k = 200, n = 1000;
+    	m = 2000, k = 200, n = 1000;
     }
     else if (argc == 4)
     {
@@ -70,8 +71,8 @@ int main(int argc, char** argv)
     }
     else
     {
-    printf( "Usage: %s M K N, the corresponding matrices will be  A(M,K) B(K,N) \n", argv[0]); 
-    return 0; 
+    	printf( "Usage: %s M K N, the corresponding matrices will be  A(M,K) B(K,N) \n", argv[0]); 
+    	return 0; 
     }
 
 
@@ -89,11 +90,11 @@ int main(int argc, char** argv)
     B = (MYFLOAT *)malloc( k*n*sizeof( MYFLOAT ));
     C = (MYFLOAT *)malloc( m*n*sizeof( MYFLOAT ));
     if (A == NULL || B == NULL || C == NULL) {
-      printf( "\n ERROR: Can't allocate memory for matrices. Aborting... \n\n");
-      free(A);
-      free(B);
-      free(C);
-      return 1;
+    	printf( "\n ERROR: Can't allocate memory for matrices. Aborting... \n\n");
+      	free(A);
+      	free(B);
+      	free(C);
+      	return 1;
     }
 
     for (i = 0; i < (m*k); i++) {
