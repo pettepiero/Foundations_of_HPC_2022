@@ -4,6 +4,7 @@
 #SBATCH --time=01:0:0
 #SBATCH -n 64
 #SBATCH -N1
+#SBATCH --output=./outputs/output_files/slurm-%j.txt
 
 echo "OpenBLAS matrix scaling"
 echo "********************************"

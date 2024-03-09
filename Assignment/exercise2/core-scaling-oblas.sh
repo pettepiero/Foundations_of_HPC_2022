@@ -4,6 +4,7 @@
 #SBATCH --time=0:30:0
 #SBATCH -n 128
 #SBATCH -N1
+#SBATCH --output=./outputs/output_files/slurm-%j.txt
 
 echo "OpenBLAS core scaling"
 echo "********************************"
