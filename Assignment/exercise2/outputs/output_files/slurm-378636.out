@@ -1,0 +1,338 @@
+BLIS core scaling
+********************************
+Loading modules
+Iteration 1
+srun: error: epyc003: task 0: Out Of Memory
+slurmstepd: error: Detected 1 oom-kill event(s) in StepId=378636.0. Some of your processes may have been killed by the cgroup out-of-memory handler.
+srun: error: epyc003: task 0: Out Of Memory
+slurmstepd: error: Detected 1 oom-kill event(s) in StepId=378636.1. Some of your processes may have been killed by the cgroup out-of-memory handler.
+Iteration 2
+srun: error: epyc003: task 0: Out Of Memory
+slurmstepd: error: Detected 1 oom-kill event(s) in StepId=378636.3. Some of your processes may have been killed by the cgroup out-of-memory handler.
+Iteration 3
+Iteration 4
+Iteration 5
+Iteration 6
+Iteration 7
+Iteration 8
+Iteration 9
+Iteration 10
+Iteration 11
+Iteration 12
+Iteration 13
+Iteration 14
+Iteration 15
+Iteration 16
+Iteration 17
+Iteration 18
+Iteration 19
+Iteration 20
+Iteration 21
+Iteration 22
+Iteration 23
+Iteration 24
+Iteration 25
+Iteration 26
+Iteration 27
+Iteration 28
+Iteration 29
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 30
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 31
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 32
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 33
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 34
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 35
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 36
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 37
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 38
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 39
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 40
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 41
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 42
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 43
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 44
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 45
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 46
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 47
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 48
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 49
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 50
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 51
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 52
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 53
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 54
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 55
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 56
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 57
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 58
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 59
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 60
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 61
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 62
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 63
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 64
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 65
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 66
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 67
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 68
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 69
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 70
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 71
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 72
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 73
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 74
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 75
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 76
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 77
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 78
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 79
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 80
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 81
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 82
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 83
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 84
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 85
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 86
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 87
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 88
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 89
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 90
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 91
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 92
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 93
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 94
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 95
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 96
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 97
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 98
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 99
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 100
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 101
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 102
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 103
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 104
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 105
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 106
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 107
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 108
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 109
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 110
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 111
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 112
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 113
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 114
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 115
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 116
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 117
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 118
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 119
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 120
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 121
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 122
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 123
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 124
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 125
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 126
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 127
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Iteration 128
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+srun: error: Unable to create step for job 378636: Job/step already completing or completed
+Finished

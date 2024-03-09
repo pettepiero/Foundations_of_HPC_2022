@@ -6,6 +6,7 @@
 #SBATCH -N1
 #SBATCH --output=./outputs/output_files/slurm-%j.txt
 
+
 echo "BLIS core scaling"
 echo "********************************"
 echo "Loading modules"
@@ -26,16 +27,16 @@ do
 	output=$(srun -n1 --cpus-per-task=$i ./gemm_blis_single.x 10000 10000 10000)
 
 	# Extract relevant information
-	seconds = $(echo "$output" | tail -n 1 | awk '{print $2}')
-	gflops = $(echo "$output" | tail -n 1 | awk '{print $4}')
+	seconds=$(echo "$output" | tail -n 1 | awk '{print $2}')
+	gflops=$(echo "$output" | tail -n 1 | awk '{print $4}')
 
 	echo "$i, $seconds, $gflops,Single" >> "$output_file"
 
 	output=$(srun -n1 --cpus-per-task=$i ./gemm_blis_double.x 10000 10000 10000)
 
 	# Extract relevant information
-	seconds = $(echo "$output" | tail -n 1 | awk '{print $2}')
-	gflops = $(echo "$output" | tail -n 1 | awk '{print $4}')
+	seconds=$(echo "$output" | tail -n 1 | awk '{print $2}')
+	gflops=$(echo "$output" | tail -n 1 | awk '{print $4}')
 
 	echo "$i, $seconds, $gflops,Double" >> "$output_file"
 
