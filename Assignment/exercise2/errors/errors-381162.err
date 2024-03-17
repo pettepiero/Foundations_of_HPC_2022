@@ -1,0 +1,6 @@
+srun: error: epyc002: task 0: Out Of Memory
+slurmstepd: error: Detected 1 oom-kill event(s) in StepId=381162.0. Some of your processes may have been killed by the cgroup out-of-memory handler.
+srun: error: epyc002: task 0: Out Of Memory
+slurmstepd: error: Detected 1 oom-kill event(s) in StepId=381162.1. Some of your processes may have been killed by the cgroup out-of-memory handler.
+srun: error: epyc002: task 0: Out Of Memory
+slurmstepd: error: Detected 1 oom-kill event(s) in StepId=381162.3. Some of your processes may have been killed by the cgroup out-of-memory handler.

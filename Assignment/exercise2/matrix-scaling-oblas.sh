@@ -4,6 +4,7 @@
 #SBATCH --time=01:0:0
 #SBATCH -n 64
 #SBATCH -N1
+#SBATCH --output=./outputs/output_files/slurm-%j.txt
 
 echo "OpenBLAS matrix scaling"
 echo "********************************"
@@ -21,7 +22,7 @@ for((i=2000; i <= 20000; i+=500))
 do
 	echo "Iteration $i"
 
-	out=$(srun -n1 --cpus-per-task=64 ./gemm_oblas_single.x $i $i $i)
+	out=$(srun -n1 --cpus-per-task=64 ./executables/gemm_oblas_single.x $i $i $i)
 	
 	# Extract the relevant information (seconds and GFLOPS)
     seconds=$(echo "$out" | tail -n 1 | awk '{print $2}')
@@ -29,7 +30,7 @@ do
 
 	echo "$i, $seconds, $gflops,Single" >> "$output_file"
 
-	out=$(srun -n1 --cpus-per-task=64 ./gemm_oblas_double.x $i $i $i)
+	out=$(srun -n1 --cpus-per-task=64 ./executables/gemm_oblas_double.x $i $i $i)
 	
 	# Extract the relevant information (seconds and GFLOPS)
     seconds=$(echo "$out" | tail -n 1 | awk '{print $2}')
