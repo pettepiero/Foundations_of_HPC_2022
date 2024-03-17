@@ -21,7 +21,7 @@ for((i=2000; i <= 20000; i+=500))
 do
 	echo "Iteration $i"
 
-	mkl_out=$(srun -n1 --cpus-per-task=64 ./gemm_mkl_single.x $i $i $i)
+	mkl_out=$(srun -n1 --cpus-per-task=64 ./executables/gemm_mkl_single.x $i $i $i)
 	
 	# Extract the relevant information (seconds and GFLOPS)
     seconds=$(echo "$mkl_out" | tail -n 1 | awk '{print $2}')
@@ -29,7 +29,7 @@ do
 
 	echo "$i, $seconds, $gflops,Single" >> "$output_file"
 
-	mkl_out=$(srun -n1 --cpus-per-task=64 ./gemm_mkl_double.x $i $i $i)
+	mkl_out=$(srun -n1 --cpus-per-task=64 ./executables/gemm_mkl_double.x $i $i $i)
 	
 	# Extract the relevant information (seconds and GFLOPS)
     seconds=$(echo "$mkl_out" | tail -n 1 | awk '{print $2}')

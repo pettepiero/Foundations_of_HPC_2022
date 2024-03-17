@@ -21,7 +21,7 @@ do
 
 	echo "Iteration $i"
 
-	output=$(srun -n1 --cpus-per-task=$i ./gemm_mkl_single.x 10000 10000 10000)
+	output=$(srun -n1 --cpus-per-task=$i ./executables/gemm_mkl_single.x 10000 10000 10000)
 
 	# Extract relevant information
 	seconds=$(echo "$output" | tail -n 1 | awk '{print $2}')
@@ -29,7 +29,7 @@ do
 
 	echo "$i, $seconds, $gflops,Single" >> "$output_file"
 
-	output=$(srun -n1 --cpus-per-task=$i ./gemm_mkl_double.x 10000 10000 10000)
+	output=$(srun -n1 --cpus-per-task=$i ./executables/gemm_mkl_double.x 10000 10000 10000)
 
 	# Extract relevant information
 	seconds=$(echo "$output" | tail -n 1 | awk '{print $2}')
