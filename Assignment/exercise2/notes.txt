@@ -1,0 +1,2 @@
+check if averages are correct
+then plot the values

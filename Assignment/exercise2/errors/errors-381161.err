@@ -1,0 +1,9 @@
+srun: error: epyc003: task 0: Out Of Memory
+slurmstepd: error: Detected 1 oom-kill event(s) in StepId=381161.0. Some of your processes may have been killed by the cgroup out-of-memory handler.
+srun: error: epyc003: task 0: Out Of Memory
+slurmstepd: error: Detected 1 oom-kill event(s) in StepId=381161.1. Some of your processes may have been killed by the cgroup out-of-memory handler.
+srun: error: epyc003: task 0: Out Of Memory
+slurmstepd: error: Detected 1 oom-kill event(s) in StepId=381161.3. Some of your processes may have been killed by the cgroup out-of-memory handler.
+slurmstepd: error: *** JOB 381161 ON epyc003 CANCELLED AT 2024-03-17T14:45:50 DUE TO TIME LIMIT ***
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** STEP 381161.57 ON epyc003 CANCELLED AT 2024-03-17T14:45:50 DUE TO TIME LIMIT ***
