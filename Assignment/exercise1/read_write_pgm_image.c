@@ -183,7 +183,7 @@ void * generate_gradient( int maxval, int xsize, int ysize )
  */
 {
   char      *cImage;   // the image when a single byte is used for each pixel
-  short int *sImage;   // the image when a two bytes are used for each pixel
+  short unsigned int *sImage;   // the image when a two bytes are used for each pixel
   void      *ptr;
   
   int minval      = 0; 
@@ -225,7 +225,6 @@ void * generate_gradient( int maxval, int xsize, int ysize )
 
   return ptr;
 }
-
 
 
 

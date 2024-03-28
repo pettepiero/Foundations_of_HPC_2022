@@ -1,4 +1,5 @@
-snapshot*.pgm
+images/snapshots/
 
-initial*.pgm
-
+gol.x
+gol.o
+read_write_pgm_image.o

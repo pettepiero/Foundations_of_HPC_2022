@@ -11,4 +11,5 @@ void swap_image( void *image, int xsize, int ysize, int maxval );
 void * generate_gradient( int maxval, int xsize, int ysize );
 
 
+
 #endif

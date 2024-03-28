@@ -18,11 +18,10 @@
 
 #define ORDERED 0
 #define STATIC  1
-#define N_STEPS 10
+#define N_STEPS 100
 
 //#define DEBUG
-
-char fname_deflt[] = "game_of_life.pgm";
+#define BLINKER
 
 int   action = 0;
 int   k      = K_DFLT;
@@ -31,6 +30,19 @@ int   n      = 10000;
 int   s      = 1;
 char *fname  = NULL;
 int maxval = 255; //255 -> white, 0 -> black
+
+#ifdef BLINKER
+unsigned char *generate_blinker(unsigned char* map, char fileName[], int size){
+    // Blinker
+    map[(int)(NROWS)/2 * NCOLS + (int)(NCOLS /2)] = 255;
+    map[((int)(NROWS)/2 +1) * NCOLS + (int)(NCOLS /2)] = 255;
+    map[((int)(NROWS)/2 +2)* NCOLS + (int)(NCOLS /2)] = 255;
+
+    write_pgm_image(map, maxval, size, size, fileName);
+    printf("PGM file created: %s\n", fileName);
+    return map;
+}
+#endif
 
 unsigned char *generate_map(unsigned char* map, char fileName[], float probability, int size){
     
@@ -135,7 +147,7 @@ void create_map(unsigned char* ptr, int size)
     // are copies of the opposite edge. Therefore loops will be easier to write
     // and should always be in the inner matrix.
 
-    generate_map(ptr, "initial_map.pgm", 0.2, size);
+    generate_map(ptr, "images/initial_map.pgm", 0.2, size);
     //read_pgm_image(ptr, &maxval, &size, &size, "initial_map.pgm");
 }
 
@@ -241,6 +253,26 @@ int main(int argc, char **argv)
         case INIT:
         printf("******************************\nInitializing a playground\n******************************\n");
         create_map(map1, k);
+
+        #ifdef BLINKER
+        printf("Generating blinker\n");
+        void *map1 = (unsigned char*)calloc(k*k, sizeof(unsigned char));
+        generate_blinker(map1, "images/blinker.pgm", k);
+        memcpy(map2, map1, k*k*sizeof(char));
+        char filename[50];
+        for(int i = 0; i < N_STEPS; i++)
+        {
+            sprintf(filename, "images/snapshots/snapshot%d.pgm", i);
+            printf("Step %d\n", i);
+            update_map(map1, map2, k);
+            write_pgm_image(map1, maxval, k, k, filename);
+        }
+        update_map(map1, map2, k);
+        break;
+        #endif
+
+
+
         #ifdef DEBUG
         printf("Printing first 100 elements after create_map()\n");
         for(int i=0; i < 100; i++)
@@ -253,17 +285,15 @@ int main(int argc, char **argv)
         char fname[15];
         for(int i = 0; i < N_STEPS; i++)
         {
-            sprintf(fname, "snapshot%d.pgm", i);
-            printf("Step %d\n", i);
+            sprintf(fname, "images/snapshots/snapshot%d.pgm", i);
             update_map(map1, map2, k);
             write_pgm_image(map1, maxval, k, k, fname);
         }
-        update_map(map1, map2, k);
         break;
 
         case RUN:
         printf("******************************\nRunning a playground\n******************************\n");        break;
-        char file[] = "image.pgm";
+        char file[] = "images/image.pgm";
         map1 = (unsigned char*)malloc(k*k*sizeof(char));
         read_pgm_image(&map1, &maxval, &k, &k, file);
         memcpy(map2, map1, k);
@@ -274,7 +304,6 @@ int main(int argc, char **argv)
         printf("No action specified\n");
         break;
     }     
-
     free(map1);
     free(map2);
     return 0;
