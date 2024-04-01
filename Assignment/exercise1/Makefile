@@ -1,21 +1,23 @@
 CC = gcc
 CFLAGS = -g -Wall
+SRCDIR = src
+BINDIR = bin
+INCDIR = include
 
-SRCS = gol.c read_write_pgm_image.c
-OBJS = $(SRCS:.c=.o)
-EXEC = gol.x
+SRCS = $(wildcard $(SRCDIR)/*.c)
+OBJS = $(patsubst $(SRCDIR)/%.c,$(BINDIR)/%.o,$(SRCS))
+EXEC = $(BINDIR)/gol.x
 
 .PHONY: clean debug
 
 $(EXEC): $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $(EXEC)
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+$(BINDIR)/%.o: $(SRCDIR)/%.c
+	$(CC) $(CFLAGS) -I$(INCDIR) -c $< -o $@
 
 clean:
-	rm -f $(OBJS) $(EXEC)
+	rm -f $(BINDIR)/*.o $(EXEC)
 
 debug: $(EXEC)
 	gdb $(EXEC)
-
