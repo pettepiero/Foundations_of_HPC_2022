@@ -1,5 +1,3 @@
-
-
 #include <stdlib.h>
 #include <stdio.h> 
 
@@ -185,7 +183,7 @@ void * generate_gradient( int maxval, int xsize, int ysize )
  */
 {
   char      *cImage;   // the image when a single byte is used for each pixel
-  short int *sImage;   // the image when a two bytes are used for each pixel
+  short unsigned int *sImage;   // the image when a two bytes are used for each pixel
   void      *ptr;
   
   int minval      = 0; 
@@ -230,76 +228,75 @@ void * generate_gradient( int maxval, int xsize, int ysize )
 
 
 
+// int main( int argc, char **argv ) 
+// { 
+//     int xsize      = XWIDTH;
+//     int ysize      = YWIDTH;
+//     int maxval     = MAXVAL;
 
-int main( int argc, char **argv ) 
-{ 
-    int xsize      = XWIDTH;
-    int ysize      = YWIDTH;
-    int maxval     = MAXVAL;
+//     // print information about endianism
+//     printf("this machine is %s\n", (I_M_LITTLE_ENDIAN)?"little endian":"big endian");
 
-    // print information about endianism
-    printf("this machine is %s\n", (I_M_LITTLE_ENDIAN)?"little endian":"big endian");
-
-    // you can use also the system-defined macro LITTLE_ENDIAN
-    printf("2nd check: this machine definitely is %s\n", (LITTLE_ENDIAN)?"little endian":"big endian");
+//     // you can use also the system-defined macro LITTLE_ENDIAN
+//     printf("2nd check: this machine definitely is %s\n", (LITTLE_ENDIAN)?"little endian":"big endian");
     
-    if ( argc > 1 )
-      {
-	maxval = atoi( *(argv+1) ) % 65536;
-	if ( argc > 3 )
-	  {
-	    xsize = atoi( *(argv+2) );
-	    ysize = atoi( *(argv+2) );
-	  }
-      }
+//     if ( argc > 1 )
+//       {
+// 	maxval = atoi( *(argv+1) ) % 65536;
+// 	if ( argc > 3 )
+// 	  {
+// 	    xsize = atoi( *(argv+2) );
+// 	    ysize = atoi( *(argv+2) );
+// 	  }
+//       }
 
-    // ---------------------------------------------------
-    //
-    void *ptr = generate_gradient( maxval, xsize, ysize );
-    printf("The gradient has been generated\n");
+//     // ---------------------------------------------------
+//     //
+//     void *ptr = generate_gradient( maxval, xsize, ysize );
+//     printf("The gradient has been generated\n");
 
-    // ---------------------------------------------------
-    //    
-    write_pgm_image( ptr, maxval, xsize, ysize, "image.pgm" );
-    printf("The gradient has been written\n");
+//     // ---------------------------------------------------
+//     //    
+//     write_pgm_image( ptr, maxval, xsize, ysize, "image.pgm" );
+//     printf("The gradient has been written\n");
     
-    free(ptr);
+//     free(ptr);
 
-    // ---------------------------------------------------
-    //
+//     // ---------------------------------------------------
+//     //
     
-    xsize = 0;
-    ysize = 0;
-    maxval = 0;
+//     xsize = 0;
+//     ysize = 0;
+//     maxval = 0;
     
-    read_pgm_image( &ptr, &maxval, &xsize, &ysize, "image.pgm");
-    printf("The gradient has been read in again\n");
+//     read_pgm_image( &ptr, &maxval, &xsize, &ysize, "image.pgm");
+//     printf("The gradient has been read in again\n");
     
-    free( ptr );
+//     free( ptr );
 
-    read_pgm_image( &ptr, &maxval, &xsize, &ysize, "check_me.pgm");
-    printf("The imaget has been read\n");
+//     read_pgm_image( &ptr, &maxval, &xsize, &ysize, "check_me.pgm");
+//     printf("The imaget has been read\n");
 
-    // swap the endianism
-    //
-    if ( I_M_LITTLE_ENDIAN )
-      swap_image( ptr, xsize, ysize, maxval);
+//     // swap the endianism
+//     //
+//     if ( I_M_LITTLE_ENDIAN )
+//       swap_image( ptr, xsize, ysize, maxval);
 
-    // do something on the image (for instance, blur it)
-    // ...
-    //
+//     // do something on the image (for instance, blur it)
+//     // ...
+//     //
     
-    // swap the endianism
-    //
-    if ( I_M_LITTLE_ENDIAN )
-      swap_image( ptr, xsize, ysize, maxval);
+//     // swap the endianism
+//     //
+//     if ( I_M_LITTLE_ENDIAN )
+//       swap_image( ptr, xsize, ysize, maxval);
         
-    write_pgm_image( ptr, maxval, xsize, ysize, "check_me.back.pgm");
-    printf("The imaget has been written back\n");
+//     write_pgm_image( ptr, maxval, xsize, ysize, "check_me.back.pgm");
+//     printf("The imaget has been written back\n");
 
-    free(ptr);
-    return 0;
-} 
+//     free(ptr);
+//     return 0;
+// } 
 
 
 

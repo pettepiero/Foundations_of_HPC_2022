@@ -1,0 +1,5 @@
+images/snapshots/
+
+gol.x
+gol.o
+read_write_pgm_image.o
