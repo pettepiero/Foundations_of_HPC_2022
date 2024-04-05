@@ -1,0 +1,12 @@
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  ms/call  ms/call  name    
+ 64.18      0.43     0.43  1000000     0.00     0.00  count_alive_neighbours
+ 13.43      0.52     0.09      100     0.90     6.10  update_map
+ 11.94      0.60     0.08  1000000     0.00     0.00  update_cell
+  8.96      0.66     0.06                             _init
+  1.49      0.67     0.01    39600     0.00     0.00  get_wrapped_neighbors
+  0.00      0.67     0.00      101     0.00     0.00  write_pgm_image
+  0.00      0.67     0.00        1     0.00     0.00  generate_map
+
+
+profiling of first serial working version of gol.c. 

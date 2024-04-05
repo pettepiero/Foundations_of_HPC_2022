@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -Wall
+CFLAGS = -pg -Wall  -fstrict-aliasing -Wstrict-aliasing
 SRCDIR = src
 BINDIR = bin
 INCDIR = include

@@ -5,8 +5,7 @@
 //#define DEBUG
 //#define BLINKER
 
-#define NROWS 100
-#define NCOLS 100
+#define SIDE 100
 
 #define INIT 1
 #define RUN  2

@@ -7,11 +7,11 @@
 #include "constants.h"
 
 #ifdef BLINKER
-unsigned char *generate_blinker(unsigned char* map, char fileName[], int size){
+unsigned char *generate_blinker(unsigned char *restrict map, char fileName[], int size){
     // Blinker
-    map[(int)(NROWS)/2 * NCOLS + (int)(NCOLS /2)] = 255;
-    map[((int)(NROWS)/2 +1) * NCOLS + (int)(NCOLS /2)] = 255;
-    map[((int)(NROWS)/2 +2)* NCOLS + (int)(NCOLS /2)] = 255;
+    map[(int)(SIDE)/2 * SIDE + (int)(SIDE /2)] = 255;
+    map[((int)(SIDE)/2 +1) * SIDE + (int)(SIDE /2)] = 255;
+    map[((int)(SIDE)/2 +2)* SIDE + (int)(SIDE /2)] = 255;
 
     write_pgm_image(map, maxval, size, size, fileName);
     printf("PGM file created: %s\n", fileName);
@@ -19,18 +19,22 @@ unsigned char *generate_blinker(unsigned char* map, char fileName[], int size){
 }
 #endif
 
-unsigned char *generate_map(unsigned char* map, char fileName[], float probability, int size){
+unsigned char *generate_map(unsigned char *restrict map, const char fileName[], const float probability, const int size){
     
-    srand(time(0)); 
+    srand(time(0));
+    float rand_max_inverse = 1 / RAND_MAX;
     // Populate pixels
-    for (int i = 0; i < NROWS; i++) {
-        for (int j = 0; j < NCOLS; j++) {
-            if ((float)rand() / RAND_MAX < probability) {
-                map[i * NCOLS + j] = 255;
-            } else {
-                map[i * NCOLS + j] = 0;
-            }
+    for (int i = 0; i < SIDE; i++) {
+        for (int j = 0; j < SIDE; j++) {
+
         }
+    }
+
+    for (int i=0; i<SIDE*SIDE; i++){
+        if ((float)rand() *rand_max_inverse < probability)
+            map[i] = 255;
+        else
+            map[i] = 0;
     }
 
     write_pgm_image(map, maxval, size, size, fileName);
@@ -46,15 +50,15 @@ void get_active_zones()
 
 
 // This function defenitely needs to be optimized
-void get_wrapped_neighbors(const int num_rows, const int num_cols, int index, int neighbors[]) {
+void get_wrapped_neighbors(const int num_rows, const int num_cols, const int current_index, int neighbors[]) {
     int relative_positions[8][2] = {
         {-1, -1}, {-1, 0}, {-1, 1},
         {0, -1},          {0, 1},
         {1, -1},  {1, 0}, {1, 1}
     };
     
-    int row = index / num_cols;
-    int col = index % num_cols;
+    int row = current_index / num_cols;
+    int col = current_index % num_cols;
 
     for (int i = 0; i < 8; i++) {
         int row_shift = relative_positions[i][0];
@@ -71,7 +75,7 @@ void get_wrapped_neighbors(const int num_rows, const int num_cols, int index, in
 }
 
 // Defenitely the wrong way to do it but it's a start
-int count_alive_neighbours(unsigned char *map, int size, int index)
+int count_alive_neighbours(unsigned char *restrict map, const int size, const int index)
 {
     int count = 0;
     int neighbours[] = {index-1, index+1, index-size, index+size, index-size-1, index-size+1, index+size-1, index+size+1};
@@ -82,49 +86,36 @@ int count_alive_neighbours(unsigned char *map, int size, int index)
         get_wrapped_neighbors(size, size, index, neighbours); 
     }
 
-    // #ifdef DEBUG
-    // printf("Neighbours of %d: ", index);
-    // for (int i=0; i<8; i++)
-    // {
-    //     printf("%d=%d ", neighbours[i], map[neighbours[i]]);
-    // }
-    // #endif
+    #ifdef DEBUG
+    printf("Neighbours of %d: ", index);
+    for (int i=0; i<8; i++)
+    {
+        printf("%d=%d ", neighbours[i], map[neighbours[i]]);
+    }
+    #endif
 
     for (int i = 0; i < 8; i++)
-    {
         if (map[neighbours[i]] == 255)
-        {
             count++;
-        }
-    }
 
     return count;
 }
 
-char update_cell(int alive_neighbours)
+// I believe the compiler will optimize this with a ternary operation.
+// I have left it so for the sake of readability
+char update_cell(const int alive_neighbours)
 {
     if(alive_neighbours < 2 || alive_neighbours > 3)
-    {
-        // printf("Setting cell to 0\n");
         return 0;
-    }
     else
-    {
         return 255;
-        // printf("Setting cell to 1\n");
-    }
 }
 
 // Performs a single step of the update of the map
-void update_map(unsigned char *current, unsigned char *new, int size)
+void update_map(unsigned char *restrict current, unsigned char *restrict new, const int size)
 {
     #ifdef DEBUG
-    printf("Inside update_map\n");
-    #endif
-
-    // loop over elements
-    #ifdef DEBUG
-    printf("Inside update_map\n");
+    printf("Inside update_map, only looping first 20 elements for debugging.\n");
     for(int i=0; i < 20; i++)
     #endif
     #ifndef DEBUG
