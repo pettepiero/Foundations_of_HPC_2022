@@ -65,6 +65,8 @@ int main(int argc, char **argv)
     if ( fname != NULL )
         free ( fname );
 
+    // Allocate memory for map and copy of map
+    
     void *map1 = (unsigned char*)malloc(k*k*sizeof(char));
     if (map1 == NULL)
     {
@@ -78,6 +80,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    // Determines if map has to be initialized or read from file
     if(action == RUN){
         printf("******************************\nRunning a playground\n******************************\n");
         char file[] = "images/blinker.pgm";
@@ -87,7 +90,8 @@ int main(int argc, char **argv)
         write_pgm_image(map1, maxval, k, k, "images/copy_of_image.pgm");
         memcpy(map2, map1, k);
         printf("Read map from %s\n", file);
-    } else if(action == INIT){
+    } 
+    else if(action == INIT){
         printf("******************************\nInitializing a playground\n******************************\n");
         #ifdef BLINKER
         printf("Generating blinker\n");
@@ -107,20 +111,31 @@ int main(int argc, char **argv)
         }
         printf("\n");
         #endif
+        printf("Address of 'map1' = ");
+        printf("  %p\n", &map1);
     } else {
         printf("No action specified\n");
+        printf("Possible actions:\n"
+                "i - Initialize a world\n"
+                "r - Run a world\n");
         exit(1);
     }
 
+    // Copy map2 into map1 and perform N_STEPS updates
     memcpy(map2, map1, k*k*sizeof(char));
-    char fname[50];
+
+    char fname[100];
+
     for(int i = 0; i < N_STEPS; i++)
     {
         sprintf(fname, "images/snapshots/snapshot%d.pgm", i);
         #ifdef DEBUG
         printf("Step %d\n", i);
         #endif
+
         update_map(map1, map2, k);
+
+        printf("\n\n Trying to execute \'write_pgm_image()'\n\n");
         write_pgm_image(map1, maxval, k, k, fname);
     }
     
