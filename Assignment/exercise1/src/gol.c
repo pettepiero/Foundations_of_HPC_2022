@@ -1,5 +1,6 @@
 /* Piero Pettenà - UNITS, Foundations of High Performance Computing - Game of Life */
 
+
 #include <stdlib.h>
 #include <stdio.h> 
 #include <string.h>

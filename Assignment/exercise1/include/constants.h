@@ -3,7 +3,7 @@
 #define CONSTANTS_H
 
 //#define DEBUG
-//#define BLINKER
+#define BLINKER
 
 #define NROWS 100
 #define NCOLS 100
