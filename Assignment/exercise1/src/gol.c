@@ -66,13 +66,13 @@ int main(int argc, char **argv)
 
     // Allocate memory for map and copy of map
     
-    void *map1 = (unsigned char*)malloc(k*k*sizeof(char));
+    void *map1 = (unsigned char*)calloc(k*k, sizeof(unsigned char));
     if (map1 == NULL)
     {
         printf("Error: Could not allocate memory for map1\n");
         exit(1);
     }
-    void *map2 = (unsigned char*)malloc(k*k*sizeof(char));
+    void *map2 = (unsigned char*)calloc(k*k, sizeof(unsigned char));;
     if (map2 == NULL)
     {
         printf("Error: Could not allocate memory for map2\n");
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
     if(action == RUN){
         printf("******************************\nRunning a playground\n******************************\n");
         char file[] = "images/blinker.pgm";
-        map1 = (unsigned char*)malloc(k*k*sizeof(char));
+        // map1 = (unsigned char*)malloc(k*k*sizeof(char));
         printf("Reading map from %s\n", file);
         read_pgm_image(&map1, &maxval, &k, &k, file);
         write_pgm_image(map1, maxval, k, k, "images/copy_of_image.pgm");
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
         printf("******************************\nInitializing a playground\n******************************\n");
         #ifdef BLINKER
         printf("Generating blinker\n");
-        map1 = (unsigned char*)calloc(k*k, sizeof(unsigned char));
+        // map1 = (unsigned char*)calloc(k*k, sizeof(unsigned char));
         generate_blinker(map1, "images/blinker.pgm", k);
         printf("Blinker created\n");
         break;
