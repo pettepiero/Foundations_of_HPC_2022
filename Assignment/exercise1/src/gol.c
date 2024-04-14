@@ -100,7 +100,7 @@ int main(int argc, char **argv)
         #endif
 
         #ifndef BLINKER
-        generate_map(map1, "images/initial_map.pgm", 0.05, k);
+        generate_map(map1, "images/initial_map.pgm", 0.10, k, 0);
         #endif
         #ifdef DEBUG
         printf("Printing first 100 elements after create_map()\n");
@@ -126,14 +126,8 @@ int main(int argc, char **argv)
     for(int i = 0; i < N_STEPS; i++)
     {
         sprintf(fname, "images/snapshots/snapshot%d.pgm", i);
-        #ifdef DEBUG
-        printf("Step %d\n", i);
-        #endif
-
-        printf("About to update map\n");
         update_map(map1, map2, k);
 
-        printf("\n\n Trying to execute \'write_pgm_image()'\n\n");
         write_pgm_image(map1, maxval, k, k, fname);
     }
     

@@ -9,9 +9,9 @@
 #ifdef BLINKER
 unsigned char *generate_blinker(unsigned char *restrict map, char fileName[], int size){
     // Blinker
-    map[(int)(SIDE)/2 * SIDE + (int)(SIDE /2)] = 255;
-    map[((int)(SIDE)/2 +1) * SIDE + (int)(SIDE /2)] = 255;
-    map[((int)(SIDE)/2 +2)* SIDE + (int)(SIDE /2)] = 255;
+    map[(int)(size)/2 * size + (int)(size /2)] = 255;
+    map[((int)(size)/2 +1) * size + (int)(size /2)] = 255;
+    map[((int)(size)/2 +2)* size + (int)(size /2)] = 255;
 
     write_pgm_image(map, maxval, size, size, fileName);
     printf("PGM file created: %s\n", fileName);
@@ -20,43 +20,79 @@ unsigned char *generate_blinker(unsigned char *restrict map, char fileName[], in
 #endif
 
 
-void update_edges(unsigned char *restrict map, const int size)
+void update_edges(unsigned char *restrict map, const int k)
 {
     // update top and bottom edges
-    for (int i=0; i<size; i++)
+    for (int i=1; i<k-1; i++)
     {
-        map[i] = map[i+size*(size-1)];
-        map[i+size*(size-1)] = map[i+size];
+        map[i] = map[i+k*(k-2)];
+        map[i+k*(k-1)] = map[i+k];
     }
 
     // update left and right edges
-    for (int i=0; i< size; i++)
+    for (int i=0; i< k; i++)
     {
-        map[i*size] = map[i*size + size-2];
-        map[i*size + size-1] = map[i*size + 1];
+        map[i*k] = map[i*k + k-2];
+        map[i*k + k-1] = map[i*k + 1];
     }
 }
 
-unsigned char *generate_map(unsigned char *restrict map, const char fileName[], const float probability, const int size){
-    
-    srand(time(0));
-    float rand_max_inverse = 1 / RAND_MAX;
-    // Populate pixels
-    for (int i = 0; i < SIDE; i++) {
-        for (int j = 0; j < SIDE; j++) {
-
+void print_map(unsigned char *restrict map, const int k)
+{
+    for (int i=0; i<k; i++){
+        for(int j = 0; j <k; j++){
+            printf("%d\t", map[i*k +j]);
         }
+        printf("\n");
+    }
+}
+
+void print_map_to_file(unsigned char *restrict map, const int k, const char fileName[])
+{
+    FILE *f = fopen(fileName, "w");
+    if (f == NULL)
+    {
+        printf("Error opening file!\n");
+        exit(1);
+    }
+    fclose(f);
+
+    f = fopen(fileName, "a");
+    for (int i=0; i<k; i++){
+        for(int j = 0; j <k; j++){
+            fprintf(f, "%d\t", map[i*k +j]);
+        }
+        fprintf(f, "\n");
     }
 
-    for (int i=0; i<SIDE*SIDE; i++){
-        if ((float)rand() *rand_max_inverse < probability)
-            map[i] = 255;
-        else
-            map[i] = 0;
-    }
-    update_edges(map, size);
+    fclose(f);
 
-    write_pgm_image(map, maxval, size, size, fileName);
+}
+
+unsigned char *generate_map(unsigned char *restrict map, const char fileName[], const float probability, const int k, const int seed){
+
+    #ifdef DEBUG
+    printf("Generating random map:\n");
+    #endif
+
+    if(seed == 0)
+        srand(time(0));
+    else
+        srand(seed);
+
+    // populate pixels
+    for (int i=0; i<k; i++){
+        for(int j = 0; j <k; j++){
+            float random = (float)rand()/ RAND_MAX;
+            if (random  < probability)
+                map[i*k + j] = 255;
+            else
+                map[i*k +j] = 0;
+            }
+    }
+    update_edges(map, k);
+
+    write_pgm_image(map, maxval, k, k, fileName);
     printf("PGM file created: %s\n", fileName);
     return map;
 }
@@ -69,8 +105,12 @@ void get_active_zones()
 
 
 // Defenitely the wrong way to do it but it's a start
+//IDEA: Use a lookup table for the neighbours ? 
+//IDEA: would it be faster to calculate neighbours for more than one position, therefore reducing #function calls?
+
 int count_alive_neighbours(unsigned char *restrict map, const int size, const int index)
 {
+    // NOTE: indexes that are passed should not be on the edges!
     int count = 0;
     int neighbours[] = {index-1, index+1, index-size, index+size, index-size-1, index-size+1, index+size-1, index+size+1};
 
@@ -103,9 +143,6 @@ char update_cell(const int alive_neighbours)
 // Performs a single step of the update of the map
 void update_map(unsigned char *restrict current, unsigned char *restrict new, int size)
 {
-    #ifdef DEBUG
-    printf("Inside update_map.\n");
-    #endif
     int i = 0;
     for(int row=1; row < size-1; row++)
         for(int col=1; col < size-1; col++)    
@@ -115,22 +152,13 @@ void update_map(unsigned char *restrict current, unsigned char *restrict new, in
         int alive_counter = count_alive_neighbours(current, size, i);
         // update element
         new[i] = update_cell(alive_counter);
-        #ifdef DEBUG
-        printf("row = %d, col %d, i = %d\n", row, col, i);  
-        printf("Cell %d, counted %d alive cells, new[%d] = %d\n", i, alive_counter, i , new[i]);
-        #endif
+        // #ifdef DEBUG
+        // printf("row = %d, col %d, i = %d\n", row, col, i);  
+        // printf("Cell %d, counted %d alive cells, new[%d] = %d\n", i, alive_counter, i , new[i]);
+        // #endif
     }
 
     update_edges(new, size);
 
     memcpy(current, new, size*size*sizeof(char));
-
-    #ifdef DEBUG
-    printf("Updated map\n");
-    printf("Printing first 100 elements\n");
-    for(int i=0; i < 100; i++)
-    {
-        printf("%d ", current[i]);
-    }
-    #endif
 }
