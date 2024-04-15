@@ -1,11 +1,12 @@
 CC = gcc
 CFLAGS = -pg -Wall  -fstrict-aliasing -Wstrict-aliasing
 SRCDIR = src
-BINDIR = bin
+BINDIR = build
 INCDIR = include
+OBJDIR = $(BINDIR)/objs
 
 SRCS = $(wildcard $(SRCDIR)/*.c)
-OBJS = $(patsubst $(SRCDIR)/%.c,$(BINDIR)/%.o,$(SRCS))
+OBJS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
 EXEC = $(BINDIR)/gol.x
 
 .PHONY: clean debug
@@ -13,10 +14,11 @@ EXEC = $(BINDIR)/gol.x
 $(EXEC): $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $(EXEC)
 
-$(BINDIR)/%.o: $(SRCDIR)/%.c
+$(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) -I$(INCDIR) -c $< -o $@
 
 clean:
+	rm -f $(OBJDIR)/*.o $(EXEC)
 	rm -f $(BINDIR)/*.o $(EXEC)
 
 debug: $(EXEC)

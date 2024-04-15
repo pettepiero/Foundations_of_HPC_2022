@@ -3,9 +3,7 @@
 #define CONSTANTS_H
 
 //#define DEBUG
-//#define BLINKER
-
-#define SIDE 100
+ #define BLINKER
 
 #define INIT 1
 #define RUN  2

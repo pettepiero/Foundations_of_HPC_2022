@@ -1,5 +1,6 @@
 /* Piero Pettenà - UNITS, Foundations of High Performance Computing - Game of Life */
 
+
 #include <stdlib.h>
 #include <stdio.h> 
 #include <string.h>
@@ -10,7 +11,7 @@
 #include "dynamics.h"
 
 int   action = 0;
-int   k      = K_DFLT;
+int   k      = K_DFLT + 2;
 int   e      = ORDERED;
 int   n      = 10000;
 int   s      = 1;
@@ -72,7 +73,7 @@ int main(int argc, char **argv)
         printf("Error: Could not allocate memory for map1\n");
         exit(1);
     }
-    void *map2 = (unsigned char*)calloc(k*k, sizeof(unsigned char));;
+    void *map2 = (unsigned char*)calloc(k*k, sizeof(unsigned char));
     if (map2 == NULL)
     {
         printf("Error: Could not allocate memory for map2\n");
@@ -94,13 +95,12 @@ int main(int argc, char **argv)
         printf("******************************\nInitializing a playground\n******************************\n");
         #ifdef BLINKER
         printf("Generating blinker\n");
-        // map1 = (unsigned char*)calloc(k*k, sizeof(unsigned char));
         generate_blinker(map1, "images/blinker.pgm", k);
         printf("Blinker created\n");
-        break;
         #endif
+
         #ifndef BLINKER
-        generate_map(map1, "images/initial_map.pgm", 0.05, k);
+        generate_map(map1, "images/initial_map.pgm", 0.10, k, 0);
         #endif
         #ifdef DEBUG
         printf("Printing first 100 elements after create_map()\n");
@@ -110,8 +110,6 @@ int main(int argc, char **argv)
         }
         printf("\n");
         #endif
-        printf("Address of 'map1' = ");
-        printf("  %p\n", &map1);
     } else {
         printf("No action specified\n");
         printf("Possible actions:\n"
@@ -128,13 +126,8 @@ int main(int argc, char **argv)
     for(int i = 0; i < N_STEPS; i++)
     {
         sprintf(fname, "images/snapshots/snapshot%d.pgm", i);
-        #ifdef DEBUG
-        printf("Step %d\n", i);
-        #endif
-
         update_map(map1, map2, k);
 
-        printf("\n\n Trying to execute \'write_pgm_image()'\n\n");
         write_pgm_image(map1, maxval, k, k, fname);
     }
     
