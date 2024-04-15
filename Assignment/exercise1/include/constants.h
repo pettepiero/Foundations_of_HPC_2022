@@ -2,7 +2,7 @@
 
 #define CONSTANTS_H
 
-#define DEBUG
+//#define DEBUG
  #define BLINKER
 
 #define INIT 1
