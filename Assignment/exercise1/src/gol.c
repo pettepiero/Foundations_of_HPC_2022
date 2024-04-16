@@ -9,6 +9,7 @@
 #include "read_write_pgm_image.h"
 #include "constants.h"
 #include "dynamics.h"
+#include <omp.h>
 
 int   action = 0;
 int   k      = K_DFLT + 2;
@@ -123,13 +124,27 @@ int main(int argc, char **argv)
 
     char fname[100];
 
+    #ifdef PROFILING
+        double tstart  = CPU_TIME;
+    #endif
+
     for(int i = 0; i < N_STEPS; i++)
     {
-        sprintf(fname, "images/snapshots/snapshot%d.pgm", i);
         update_map(map1, map2, k);
+        
+        #ifndef PROFILING
+            sprintf(fname, "images/snapshots/snapshot%d.pgm", i);
+            write_pgm_image(map1, maxval, k, k, fname);
+        #endif
 
-        write_pgm_image(map1, maxval, k, k, fname);
     }
+
+    #ifdef PROFILING
+        double tend = CPU_TIME;
+        double ex_time = tend-tstart;
+        printf("\n\n Execution time for %d is %f\n\n", N_STEPS, ex_time);
+    #endif
+
     
     free(map1);
     free(map2);

@@ -5,6 +5,8 @@
 #include <time.h>
 #include "read_write_pgm_image.h"
 #include "constants.h"
+#include <omp.h>
+
 
 #ifdef BLINKER
 unsigned char *generate_blinker(unsigned char *restrict map, char fileName[], int size){
@@ -143,19 +145,29 @@ char update_cell(const int alive_neighbours)
 // Performs a single step of the update of the map
 void update_map(unsigned char *restrict current, unsigned char *restrict new, int size)
 {
-    int i = 0;
-    for(int row=1; row < size-1; row++)
-        for(int col=1; col < size-1; col++)    
-    {
-        i = row*size + col;
-        // check neighbours
-        int alive_counter = count_alive_neighbours(current, size, i);
-        // update element
-        new[i] = update_cell(alive_counter);
-        // #ifdef DEBUG
-        // printf("row = %d, col %d, i = %d\n", row, col, i);  
-        // printf("Cell %d, counted %d alive cells, new[%d] = %d\n", i, alive_counter, i , new[i]);
-        // #endif
+    #pragma omp parallel
+    {    
+        int i = 0;
+        #pragma omp master
+        {
+            int n_threads = omp_get_num_threads();
+            printf("\n Parallel for using %d threads.\n", n_threads);
+        }
+
+        #pragma omp for
+        for(int row=1; row < size-1; row++)
+            for(int col=1; col < size-1; col++)    
+        {
+            i = row*size + col;
+            // check neighbours
+            int alive_counter = count_alive_neighbours(current, size, i);
+            // update element
+            new[i] = update_cell(alive_counter);
+            // #ifdef DEBUG
+            // printf("row = %d, col %d, i = %d\n", row, col, i);  
+            // printf("Cell %d, counted %d alive cells, new[%d] = %d\n", i, alive_counter, i , new[i]);
+            // #endif
+        }
     }
 
     update_edges(new, size);
