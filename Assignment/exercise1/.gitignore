@@ -4,7 +4,5 @@ gol.x
 gol.o
 read_write_pgm_image.o
 test/pgm/
-build/*.o
-build/objs/*.o
-build/*.x
-../../Basic/*
+build/
+../../Basic/

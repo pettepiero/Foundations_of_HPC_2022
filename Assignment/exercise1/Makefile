@@ -1,5 +1,8 @@
 CC = gcc
 CFLAGS = -pg -Wall -fopenmp -fstrict-aliasing -Wstrict-aliasing
+PROFILEFLAGS = -DPROFILING
+#maybe add -pg to PROFILEFLAGS
+DEBUGFLAGS = -DDEBUG
 SRCDIR = src
 BINDIR = build
 INCDIR = include
@@ -17,9 +20,9 @@ $(EXEC): $(OBJS)
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) -I$(INCDIR) -c $< -o $@
 
+profile: CFLAGS += $(PROFILEFLAGS)
+profile: $(EXEC)
+
 clean:
 	rm -f $(OBJDIR)/*.o $(EXEC)
 	rm -f $(BINDIR)/*.o $(EXEC)
-
-debug: $(EXEC)
-	gdb $(EXEC)

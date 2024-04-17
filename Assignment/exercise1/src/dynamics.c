@@ -148,25 +148,15 @@ void update_map(unsigned char *restrict current, unsigned char *restrict new, in
     #pragma omp parallel
     {    
         int i = 0;
-        #pragma omp master
-        {
-            int n_threads = omp_get_num_threads();
-            printf("\n Parallel for using %d threads.\n", n_threads);
-        }
-
         #pragma omp for
         for(int row=1; row < size-1; row++)
             for(int col=1; col < size-1; col++)    
         {
+            // int thread_num = omp_get_thread_num();
             i = row*size + col;
-            // check neighbours
             int alive_counter = count_alive_neighbours(current, size, i);
-            // update element
             new[i] = update_cell(alive_counter);
-            // #ifdef DEBUG
-            // printf("row = %d, col %d, i = %d\n", row, col, i);  
-            // printf("Cell %d, counted %d alive cells, new[%d] = %d\n", i, alive_counter, i , new[i]);
-            // #endif
+            // printf("Thread %d assigned index %d\n", thread_num, i);
         }
     }
 

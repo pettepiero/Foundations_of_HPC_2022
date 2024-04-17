@@ -5,8 +5,8 @@
 #include <time.h>
 
 //#define DEBUG
- #define BLINKER
- #define PROFILING
+//#define BLINKER
+//#define PROFILING
 
 #define INIT 1
 #define RUN  2
@@ -15,7 +15,7 @@
 
 #define ORDERED 0
 #define STATIC  1
-#define N_STEPS 100
+#define N_STEPS 200
 
 
 extern int action;

@@ -10,6 +10,9 @@
 #include "constants.h"
 #include "dynamics.h"
 #include <omp.h>
+#if !defined(_OPENMP)
+#error "OpenMP support needed for this code"
+#endif
 
 int   action = 0;
 int   k      = K_DFLT + 2;
@@ -68,24 +71,40 @@ int main(int argc, char **argv)
 
     // Allocate memory for map and copy of map
     
-    void *map1 = (unsigned char*)calloc(k*k, sizeof(unsigned char));
+    void *map1 = (unsigned char*)malloc(k*k*sizeof(unsigned char));
     if (map1 == NULL)
     {
         printf("Error: Could not allocate memory for map1\n");
         exit(1);
     }
-    void *map2 = (unsigned char*)calloc(k*k, sizeof(unsigned char));
+    void *map2 = (unsigned char*)malloc(k*k*sizeof(unsigned char));
     if (map2 == NULL)
     {
         printf("Error: Could not allocate memory for map2\n");
         exit(1);
     }
 
+    unsigned char *map1_char = (unsigned char*)map1;
+    unsigned char *map2_char = (unsigned char*)map2;
+
+    // Touching the maps in the different threads,
+    // so that each cache will be warmed-up appropriately
+    #pragma omp parallel
+    {
+        for (int i=0; i<k; i++)
+        {
+            for(int j = 0; j <k; j++)
+            {
+                map1_char[i*k +j] = 0;
+                map2_char[i*k +j] = 0;
+            }
+        }
+    }
+
     // Determines if map has to be initialized or read from file
     if(action == RUN){
         printf("******************************\nRunning a playground\n******************************\n");
         char file[] = "images/blinker.pgm";
-        // map1 = (unsigned char*)malloc(k*k*sizeof(char));
         printf("Reading map from %s\n", file);
         read_pgm_image(&map1, &maxval, &k, &k, file);
         write_pgm_image(map1, maxval, k, k, "images/copy_of_image.pgm");
@@ -93,23 +112,26 @@ int main(int argc, char **argv)
         printf("Read map from %s\n", file);
     } 
     else if(action == INIT){
-        printf("******************************\nInitializing a playground\n******************************\n");
+        #ifdef DEBUG
+            printf("******************************\nInitializing a playground\n******************************\n");
+        #endif
         #ifdef BLINKER
-        printf("Generating blinker\n");
-        generate_blinker(map1, "images/blinker.pgm", k);
-        printf("Blinker created\n");
+            #ifdef DEBUG
+                printf("Generating blinker\n");
+            #endif
+            generate_blinker(map1, "images/blinker.pgm", k);
         #endif
 
         #ifndef BLINKER
-        generate_map(map1, "images/initial_map.pgm", 0.10, k, 0);
+            generate_map(map1, "images/initial_map.pgm", 0.10, k, 0);
         #endif
         #ifdef DEBUG
-        printf("Printing first 100 elements after create_map()\n");
-        for(int i=0; i < 100; i++)
-        {
-            printf("%d ", ((unsigned char *)map1)[i]);
-        }
-        printf("\n");
+            printf("Printing first 100 elements after create_map()\n");
+            for(int i=0; i < 100; i++)
+            {
+                printf("%d ", ((unsigned char *)map1)[i]);
+            }
+            printf("\n");
         #endif
     } else {
         printf("No action specified\n");
@@ -124,7 +146,20 @@ int main(int argc, char **argv)
 
     char fname[100];
 
+    #pragma omp parallel 
+    {
+        #pragma omp master 
+        {
+            int nthreads = omp_get_num_threads();
+            printf("Going to use %d threads\n", nthreads );
+        }
+    }
+
+
     #ifdef PROFILING
+        printf("***************************************\n");
+        printf("In profiling mode, not generating images\n");
+        printf("***************************************\n");
         double tstart  = CPU_TIME;
     #endif
 
@@ -142,11 +177,12 @@ int main(int argc, char **argv)
     #ifdef PROFILING
         double tend = CPU_TIME;
         double ex_time = tend-tstart;
-        printf("\n\n Execution time for %d is %f\n\n", N_STEPS, ex_time);
+        printf("\n\n Execution time for %d steps     is \n%f\n", N_STEPS, ex_time);   
     #endif
 
     
     free(map1);
     free(map2);
+        
     return 0;
 }
