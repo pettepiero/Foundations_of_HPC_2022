@@ -1,0 +1,36 @@
+module load architecture/AMD
+module load openMPI/4.1.5/gnu/12.2.1
+
+note: 	we have to compile the code on the AMD node (EPYC)!
+	to do that, we allocate a couple of processors: "salloc -N 2 -p EPYC" 
+	then we do "$srun mpicc hello_world.c -o hello_world.x"
+	NOTE: you can also do "$mpicc hello_world.c -o hello_world.x" apparently
+	then "srun ./hello_world.x"
+
+note: 	if we don't specify anything, due to the fact that we allocated 2 
+	processors, it will run on 2 processors. "$srun" runs on all the 
+	processors that are allocated with "$salloc"
+
+
+example: "salloc --ntasks-per-node 1 -N2 -p EPYC --time=0:15:00
+		this is allocating one task (core) per node on 2 nodes from EPYC
+		partition with limit of time 15 minutes
+		You can check the fact that you're on 2 nodes by running:
+		"srun /bin/hostname"
+		Then you do "module load..." to compile and run the code.
+
+note: 	$hostname
+		$srun hostname
+		are different things! try it after allocating
+
+note: 	20 times is enough for measuring times. Remember to calculate
+		mean and standard deviation and see how much it fluctuates.
+note:	when we want to measure performance we want to be the only ones
+		on the machine
+
+note:	"$salloc -n9 -N3 -p EPYC --time=0:15:00" is asking for 9 cores
+		on 3 nodes.
+		"$salloc --ntasks-per-node -N3 -p EPYC --time=0:15:00" asks for
+		3 cores on each node
+		Check the different outputs of "$srun hostname" of the last 2
+		allocations.

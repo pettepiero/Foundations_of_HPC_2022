@@ -145,10 +145,12 @@ char update_cell(const int alive_neighbours)
 // Performs a single step of the update of the map
 void update_map(unsigned char *restrict current, unsigned char *restrict new, int size)
 {
+    #if defined(_OPENMP)
+
     #pragma omp parallel
     {    
         int i = 0;
-        #pragma omp for
+        #pragma omp for collapse(2)
         for(int row=1; row < size-1; row++)
             for(int col=1; col < size-1; col++)    
         {
@@ -159,6 +161,19 @@ void update_map(unsigned char *restrict current, unsigned char *restrict new, in
             // printf("Thread %d assigned index %d\n", thread_num, i);
         }
     }
+    #else
+    int i = 0;
+    for(int row=1; row < size-1; row++)
+        for(int col=1; col < size-1; col++)    
+    {
+        // int thread_num = omp_get_thread_num();
+        i = row*size + col;
+        int alive_counter = count_alive_neighbours(current, size, i);
+        new[i] = update_cell(alive_counter);
+        // printf("Thread %d assigned index %d\n", thread_num, i);
+    }
+
+    #endif
 
     update_edges(new, size);
 

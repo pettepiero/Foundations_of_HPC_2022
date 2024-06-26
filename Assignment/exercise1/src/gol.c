@@ -11,7 +11,7 @@
 #include "dynamics.h"
 #include <omp.h>
 #if !defined(_OPENMP)
-#error "OpenMP support needed for this code"
+#warning "Run "make openmp" to enable OpenMP."
 #endif
 
 int   action = 0;
@@ -22,6 +22,7 @@ int   s      = 1;
 char *fname  = NULL;
 int maxval = 255; //255 -> white, 0 -> black
 
+//IDEA:
 //To save memory, the storage can be reduced to one array plus two line buffers.
 // One line buffer is used to calculate the successor state for a line, then the second 
 // line buffer is used to calculate the successor state for the next line. The first buffer
@@ -29,7 +30,7 @@ int maxval = 255; //255 -> white, 0 -> black
 
 int main(int argc, char **argv)
 {
-    int action = 0;
+    action = 0;
     char *optstring = "irk:e:f:n:s:";
 
     int c;
@@ -50,7 +51,7 @@ int main(int argc, char **argv)
         e = atoi(optarg); break;
 
         case 'f':
-        fname = (char*)malloc( sizeof(optarg)+1 );
+        fname = (char*)malloc( strlen(optarg)+1 );
         sprintf(fname, "%s", optarg );
         printf("Reading file: %s\n", fname);
         break;
@@ -87,6 +88,7 @@ int main(int argc, char **argv)
     unsigned char *map1_char = (unsigned char*)map1;
     unsigned char *map2_char = (unsigned char*)map2;
 
+    #if defined(_OPENMP)
     // Touching the maps in the different threads,
     // so that each cache will be warmed-up appropriately
     #pragma omp parallel
@@ -100,6 +102,16 @@ int main(int argc, char **argv)
             }
         }
     }
+    #else
+        for (int i=0; i<k; i++)
+    {
+        for(int j = 0; j <k; j++)
+        {
+            map1_char[i*k +j] = 0;
+            map2_char[i*k +j] = 0;
+        }
+    }
+    #endif
 
     // Determines if map has to be initialized or read from file
     if(action == RUN){
@@ -136,7 +148,6 @@ int main(int argc, char **argv)
     } else {
         printf("No action specified\n");
         printf("Possible actions:\n"
-                "i - Initialize a world\n"
                 "r - Run a world\n");
         exit(1);
     }
@@ -146,6 +157,7 @@ int main(int argc, char **argv)
 
     char fname[100];
 
+    #if defined(_OPENMP)
     #pragma omp parallel 
     {
         #pragma omp master 
@@ -154,7 +166,9 @@ int main(int argc, char **argv)
             printf("Going to use %d threads\n", nthreads );
         }
     }
-
+    #else
+    printf("Serial code, OpenMP disabled.\n");
+    #endif
 
     #ifdef PROFILING
         printf("***************************************\n");
@@ -163,6 +177,8 @@ int main(int argc, char **argv)
         double tstart  = CPU_TIME;
     #endif
 
+    #if defined(_OPENMP)
+    #endif
     for(int i = 0; i < N_STEPS; i++)
     {
         update_map(map1, map2, k);
