@@ -6,9 +6,8 @@
 #SBATCH --ntasks=8
 #SBATCH --ntasks-per-node=2
 #SBATCH --cpus-per-task=64
-#SBATCH --exclusive
 #SBATCH --time=02:00:00
-#SBATCH --output=./outputs/slurm-%j.txt
+#SBATCH --output=./outputs/slurm-%j-strong-mpi.txt
 
 module load architecture/AMD
 module load openMPI/4.1.5/gnu/12.2.1

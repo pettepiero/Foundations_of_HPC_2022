@@ -116,13 +116,13 @@ int count_alive_neighbours(unsigned char *restrict map, const int size, const in
     int count = 0;
     int neighbours[] = {index-1, index+1, index-size, index+size, index-size-1, index-size+1, index+size-1, index+size+1};
 
-    #ifdef DEBUG
-    printf("Neighbours of %d: \n", index);
-    for (int i=0; i<8; i++)
-    {
-        printf("%d=%d \n", neighbours[i], map[neighbours[i]]);
-    }
-    #endif
+    // #ifdef DEBUG
+    // printf("Neighbours of %d: \n", index);
+    // for (int i=0; i<8; i++)
+    // {
+    //     printf("%d=%d \n", neighbours[i], map[neighbours[i]]);
+    // }
+    // #endif
 
     for (int i = 0; i < 8; i++)
         if (map[neighbours[i]] == 255)

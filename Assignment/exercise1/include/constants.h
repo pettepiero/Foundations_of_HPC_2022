@@ -15,7 +15,7 @@
 
 #define ORDERED 0
 #define STATIC  1
-#define N_STEPS 200
+#define N_STEPS 100
 
 
 extern int action;

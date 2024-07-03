@@ -2,12 +2,12 @@
 #SBATCH -A dssc
 #SBATCH --job-name=openmp-scal
 #SBATCH --partition=EPYC
-#SBATCH --time=01:00:0
+#SBATCH --time=02:00:0
 #SBATCH --exclusive
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --output=./outputs/slurm-%j.txt
+#SBATCH --output=./outputs/slurm-%j-openmp-scal.txt
 
 module load architecture/AMD
 module load openMPI/4.1.5/gnu/12.2.1
@@ -16,7 +16,7 @@ echo "OpenMP scalability"
 echo "Running game of life with different #threads"
 echo "to collect data for time/threads plots"
 
-output_file="./outputs/timings/time-th-$SLURM_JOB_ID.csv"
+output_file="./outputs/timings/openmp-scal-$SLURM_JOB_ID.csv"
 max_num_threads=64    # number of cores in each AMD EPYC 7H12 CPU
 
 
@@ -24,13 +24,17 @@ max_num_threads=64    # number of cores in each AMD EPYC 7H12 CPU
 # Outer loop repeats the measurements for different matrix dimensions
 # The following dimensions are tested: (100, 500, 1000, 1500, 2000)
 
-for dim in 100 500 1000 1500 2000
+if [ "$1" == "-s" ]; then
+    output_file="./outputs/timings/openmp-scal-$SLURM_JOB_ID-serial.csv"
+fi
+echo "dim,nthreads,time" > "$output_file"
+#100 500 1000 1500 2000
+for dim in 1000 1500 2000
 do
     # Check if single thread flag is provided
     if [ "$1" == "-s" ]; then
+        echo "Using dimension $dim"
         echo "Running with a single thread"
-        output_file="./outputs/timings/time-th-$SLURM_JOB_ID-serial.csv"
-        echo "dim,nthreads,time" > "$output_file"
 
         export OMP_NUM_THREADS=1
         output=$(srun -n1 ./build/gol.x -i -k $dim)
@@ -38,9 +42,8 @@ do
         echo "$dim,1,$time" >> "$output_file"
         echo "$output" >> "./outputs/slurm-$SLURM_JOB_ID-serial.txt"
     else
+        echo "Using dimension $dim"
         echo "Running with 1 to 64 cores per socket"
-        output_file="./outputs/timings/time-th-$SLURM_JOB_ID.csv"
-        echo "dim,nthreads,time" > "$output_file"
         # Run the loop max_num_threads times
         for ((i=1; i<=$max_num_threads; i+=1))
         do
