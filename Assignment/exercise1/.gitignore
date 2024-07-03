@@ -6,3 +6,8 @@ read_write_pgm_image.o
 test/pgm/
 build/
 ../../Basic/
+outputs/
+../../Basic/
+../../STREAM/
+../../mpi-benchmarks/
+
