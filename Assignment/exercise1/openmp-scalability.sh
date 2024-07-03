@@ -9,7 +9,6 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --output=./outputs/slurm-%j-openmp-scal.txt
 
-module load architecture/AMD
 module load openMPI/4.1.5/gnu/12.2.1
 
 echo "OpenMP scalability"
