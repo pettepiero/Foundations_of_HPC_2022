@@ -4,4 +4,10 @@ gol.x
 gol.o
 read_write_pgm_image.o
 test/pgm/
-bin/*.o
+build/
+../../Basic/
+outputs/
+../../Basic/
+../../STREAM/
+../../mpi-benchmarks/
+

@@ -5,8 +5,8 @@
 #include <time.h>
 
 //#define DEBUG
- #define BLINKER
- #define PROFILING
+//#define BLINKER
+//#define PROFILING
 
 #define INIT 1
 #define RUN  2
