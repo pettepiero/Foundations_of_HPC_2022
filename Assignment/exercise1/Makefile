@@ -15,7 +15,7 @@ EXEC = $(BINDIR)/gol.x
 .PHONY: clean debug profile openmp
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
-	$(CC) $(CFLAGS) -I$(INCDIR) -c $< -o $@
+	$(CC) $(CFLAGS) $(PROFILEFLAGS) -I$(INCDIR) -c $< -o $@
 
 $(EXEC): $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $(EXEC)

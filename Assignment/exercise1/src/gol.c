@@ -30,6 +30,10 @@ int maxval = 255; //255 -> white, 0 -> black
 
 int main(int argc, char **argv)
 {
+
+    #ifndef _OPENMP
+	printf("\nExecuting without OPENMP in serial mode.\n\n");
+    #endif
     action = 0;
     char *optstring = "irk:e:f:n:s:";
 
@@ -155,12 +159,6 @@ int main(int argc, char **argv)
     // Copy map2 into map1 and perform N_STEPS updates
     memcpy(map2, map1, k*k*sizeof(char));
 
-    char fname[100];
-
-    #ifdef PROFILING
-        double tstart  = CPU_TIME;
-    #endif
-
     #if defined(_OPENMP)
     #pragma omp parallel 
     {
@@ -170,8 +168,6 @@ int main(int argc, char **argv)
             printf("Going to use %d threads\n", nthreads );
         }
     }
-    #else
-    printf("Serial code, OpenMP disabled.\n");
     #endif
 
     #ifdef PROFILING
