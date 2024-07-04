@@ -5,6 +5,8 @@
 #include <time.h>
 #include "read_write_pgm_image.h"
 #include "constants.h"
+#include <omp.h>
+
 
 #ifdef BLINKER
 unsigned char *generate_blinker(unsigned char *restrict map, char fileName[], int size){
@@ -114,13 +116,13 @@ int count_alive_neighbours(unsigned char *restrict map, const int size, const in
     int count = 0;
     int neighbours[] = {index-1, index+1, index-size, index+size, index-size-1, index-size+1, index+size-1, index+size+1};
 
-    #ifdef DEBUG
-    printf("Neighbours of %d: \n", index);
-    for (int i=0; i<8; i++)
-    {
-        printf("%d=%d \n", neighbours[i], map[neighbours[i]]);
-    }
-    #endif
+    // #ifdef DEBUG
+    // printf("Neighbours of %d: \n", index);
+    // for (int i=0; i<8; i++)
+    // {
+    //     printf("%d=%d \n", neighbours[i], map[neighbours[i]]);
+    // }
+    // #endif
 
     for (int i = 0; i < 8; i++)
         if (map[neighbours[i]] == 255)
@@ -143,20 +145,35 @@ char update_cell(const int alive_neighbours)
 // Performs a single step of the update of the map
 void update_map(unsigned char *restrict current, unsigned char *restrict new, int size)
 {
+    #if defined(_OPENMP)
+
+    #pragma omp parallel
+    {    
+        int i = 0;
+        #pragma omp for collapse(2)
+        for(int row=1; row < size-1; row++)
+            for(int col=1; col < size-1; col++)    
+        {
+            // int thread_num = omp_get_thread_num();
+            i = row*size + col;
+            int alive_counter = count_alive_neighbours(current, size, i);
+            new[i] = update_cell(alive_counter);
+            // printf("Thread %d assigned index %d\n", thread_num, i);
+        }
+    }
+    #else
     int i = 0;
     for(int row=1; row < size-1; row++)
         for(int col=1; col < size-1; col++)    
     {
+        // int thread_num = omp_get_thread_num();
         i = row*size + col;
-        // check neighbours
         int alive_counter = count_alive_neighbours(current, size, i);
-        // update element
         new[i] = update_cell(alive_counter);
-        // #ifdef DEBUG
-        // printf("row = %d, col %d, i = %d\n", row, col, i);  
-        // printf("Cell %d, counted %d alive cells, new[%d] = %d\n", i, alive_counter, i , new[i]);
-        // #endif
+        // printf("Thread %d assigned index %d\n", thread_num, i);
     }
+
+    #endif
 
     update_edges(new, size);
 
