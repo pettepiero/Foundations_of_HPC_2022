@@ -1,6 +1,5 @@
 /* Piero Pettenà - UNITS, Foundations of High Performance Computing - Game of Life */
 
-
 #include <stdlib.h>
 #include <stdio.h> 
 #include <string.h>
@@ -10,6 +9,8 @@
 #include "constants.h"
 #include "dynamics.h"
 #include <omp.h>
+#include <mpi.h>
+
 #if !defined(_OPENMP)
 #warning "Run "make openmp" to enable OpenMP."
 #endif
@@ -30,6 +31,21 @@ int maxval = 255; //255 -> white, 0 -> black
 
 int main(int argc, char **argv)
 {
+    MPI_Init(&argc, &argv);
+    
+    int size_of_cluster;
+    int process_rank;
+
+    MPI_Comm_size(MPI_COMM_WORLD, &size_of_cluster);
+    MPI_Comm_rank(MPI_COMM_wORLD, &process_rank);
+
+    if(process_rank == 0)
+    {
+        printf("Rank: %d |\tSize of cluster: %d\n", process_rank, size_of_cluster);
+        int n_lines_per_process = k / size_of_cluster;
+        printf("Rank: %d |\tNumber of lines per process: %d/%d=%d\n", k, size_of_cluster, process_rank, n_lines_per_process);
+    }
+
 
     #ifndef _OPENMP
 	printf("\nExecuting without OPENMP in serial mode.\n\n");
@@ -197,5 +213,6 @@ int main(int argc, char **argv)
     free(map1);
     free(map2);
         
+    MPI_Finalize();    
     return 0;
 }
