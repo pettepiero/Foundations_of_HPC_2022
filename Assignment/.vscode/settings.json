@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "cblas.h": "c"
+        "cblas.h": "c",
+        "read_write_pgm_image.h": "c"
     }
 }
