@@ -155,12 +155,6 @@ int main(int argc, char **argv)
     // Copy map2 into map1 and perform N_STEPS updates
     memcpy(map2, map1, k*k*sizeof(char));
 
-    char fname[100];
-
-    #ifdef PROFILING
-        double tstart  = CPU_TIME;
-    #endif
-
     #if defined(_OPENMP)
     #pragma omp parallel 
     {
@@ -183,6 +177,7 @@ int main(int argc, char **argv)
 
     for(int i = 0; i < N_STEPS; i++)
     {
+	printf("Step %d\n", i);
         update_map(map1, map2, k);
         
         #ifndef PROFILING
