@@ -22,6 +22,28 @@ unsigned char *generate_blinker(unsigned char *restrict map, char fileName[], in
 #endif
 
 
+void init_to_zero(unsigned char *restrict map1, const int k)
+{
+    #if defined(_OPENMP)
+        // Touching the maps in the different threads,
+        // so that each cache will be warmed-up appropriately
+        #pragma omp parallel
+        {
+            for (int i=0; i<k; i++){
+                for(int j = 0; j <k; j++){
+                    map1_char[i*k +j] = 0;
+                    map2_char[i*k +j] = 0;
+                }
+            }
+        }
+        #else
+            for (int i=0; i<k; i++){
+                for(int j = 0; j<k; j++)
+                    map1[i*k +j] = 0;
+            }
+    #endif
+}
+
 void update_edges(unsigned char *restrict map, const int k)
 {
     // update top and bottom edges

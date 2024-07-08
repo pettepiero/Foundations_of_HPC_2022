@@ -9,7 +9,7 @@
 #include "constants.h"
 #include "dynamics.h"
 #include <omp.h>
-#include <mpi.h>
+// #include <mpi.h>
 
 #if !defined(_OPENMP)
 #warning "Run "make openmp" to enable OpenMP."
@@ -17,7 +17,7 @@
 
 int   action = 0;
 int   k      = K_DFLT + 2;
-int   e      = ORDERED;
+int   e      = STATIC;
 int   n      = 10000;
 int   s      = 1;
 char *fname  = NULL;
@@ -31,20 +31,20 @@ int maxval = 255; //255 -> white, 0 -> black
 
 int main(int argc, char **argv)
 {
-    MPI_Init(&argc, &argv);
+    // MPI_Init(&argc, &argv);
     
-    int size_of_cluster;
-    int process_rank;
+    // int size_of_cluster;
+    // int process_rank;
 
-    MPI_Comm_size(MPI_COMM_WORLD, &size_of_cluster);
-    MPI_Comm_rank(MPI_COMM_wORLD, &process_rank);
+    // MPI_Comm_size(MPI_COMM_WORLD, &size_of_cluster);
+    // MPI_Comm_rank(MPI_COMM_wORLD, &process_rank);
 
-    if(process_rank == 0)
-    {
-        printf("Rank: %d |\tSize of cluster: %d\n", process_rank, size_of_cluster);
-        int n_lines_per_process = k / size_of_cluster;
-        printf("Rank: %d |\tNumber of lines per process: %d/%d=%d\n", k, size_of_cluster, process_rank, n_lines_per_process);
-    }
+    // if(process_rank == 0)
+    // {
+    //     printf("Rank: %d |\tSize of cluster: %d\n", process_rank, size_of_cluster);
+    //     int n_lines_per_process = k / size_of_cluster;
+    //     printf("Rank: %d |\tNumber of lines per process: %d/%d=%d\n", k, size_of_cluster, process_rank, n_lines_per_process);
+    // }
 
 
     #ifndef _OPENMP
@@ -68,7 +68,16 @@ int main(int argc, char **argv)
         k = atoi(optarg); break;
 
         case 'e':
-        e = atoi(optarg); break;
+        e = atoi(optarg); 
+        if(e == STATIC)
+            printf("Using static evolution\n");
+        else if(e == ORDERED)
+            printf("Using ordered evolution\n");
+        else{
+            printf("Unknown evolution type\n");
+            exit(1);
+        }
+        break;
 
         case 'f':
         fname = (char*)malloc( strlen(optarg)+1 );
@@ -92,61 +101,27 @@ int main(int argc, char **argv)
 
     // Allocate memory for map and copy of map
     
-    void *map1 = (unsigned char*)malloc(k*k*sizeof(unsigned char));
-    if (map1 == NULL)
-    {
-        printf("Error: Could not allocate memory for map1\n");
-        exit(1);
-    }
-    void *map2 = (unsigned char*)malloc(k*k*sizeof(unsigned char));
-    if (map2 == NULL)
-    {
-        printf("Error: Could not allocate memory for map2\n");
-        exit(1);
-    }
+    void *map1 = NULL;
+    void *map2 = NULL;
+    unsigned char *map1_char = NULL;
+    unsigned char *map2_char = NULL;
 
-    unsigned char *map1_char = (unsigned char*)map1;
-    unsigned char *map2_char = (unsigned char*)map2;
-
-    #if defined(_OPENMP)
-    // Touching the maps in the different threads,
-    // so that each cache will be warmed-up appropriately
-    #pragma omp parallel
-    {
-        for (int i=0; i<k; i++)
-        {
-            for(int j = 0; j <k; j++)
-            {
-                map1_char[i*k +j] = 0;
-                map2_char[i*k +j] = 0;
-            }
-        }
-    }
-    #else
-        for (int i=0; i<k; i++)
-    {
-        for(int j = 0; j <k; j++)
-        {
-            map1_char[i*k +j] = 0;
-            map2_char[i*k +j] = 0;
-        }
-    }
-    #endif
-
-    // Determines if map has to be initialized or read from file
+    /* Determines if map has to be initialized or read from file */
     if(action == RUN){
         printf("******************************\nRunning a playground\n******************************\n");
         char file[] = "images/blinker.pgm";
         printf("Reading map from %s\n", file);
         read_pgm_image(&map1, &maxval, &k, &k, file);
         write_pgm_image(map1, maxval, k, k, "images/copy_of_image.pgm");
-        memcpy(map2, map1, k);
         printf("Read map from %s\n", file);
-    } 
+    }
     else if(action == INIT){
-        #ifdef DEBUG
-            printf("******************************\nInitializing a playground\n******************************\n");
-        #endif
+        map1 = (unsigned char*)malloc(k*k*sizeof(unsigned char));
+        if (map1 == NULL)
+        {
+            printf("Error: Could not allocate memory for map1\n");
+            exit(1);
+        }
         #ifdef BLINKER
             #ifdef DEBUG
                 printf("Generating blinker\n");
@@ -168,12 +143,27 @@ int main(int argc, char **argv)
     } else {
         printf("No action specified\n");
         printf("Possible actions:\n"
-                "r - Run a world\n");
+                "r - Run a world\n"
+                "i - Initialize a world\n"
+                "Evolution types:\n"
+                "e 0 - Ordered evolution\n"
+                "e 1 - Static evolution\n\n");
         exit(1);
     }
 
-    // Copy map2 into map1 and perform N_STEPS updates
-    memcpy(map2, map1, k*k*sizeof(char));
+    map1_char = (unsigned char*)map1;
+
+    if (e == STATIC){
+        map2 = (unsigned char*)malloc(k*k*sizeof(unsigned char));
+        if (map2 == NULL)
+        {
+            printf("Error: Could not allocate memory for map2\n");
+            exit(1);
+        }
+        map2_char = (unsigned char*)map2;
+        memcpy(map2_char, map1_char, k*k*sizeof(char));
+    } else if (e == ORDERED)
+        init_to_zero(map1_char, k);
 
     #if defined(_OPENMP)
     #pragma omp parallel 
@@ -193,16 +183,20 @@ int main(int argc, char **argv)
         double tstart  = CPU_TIME;
     #endif
 
-    for(int i = 0; i < N_STEPS; i++)
-    {
-        update_map(map1, map2, k);
+    // for(int i = 0; i < N_STEPS; i++)
+    // {
+    //     #ifdef STATIC
+    //         update_map(map1, map2, k);
+    //     #else
+    //         update_map(map1, map1, k);
+    //     #endif
         
-        #ifndef PROFILING
-            sprintf(fname, "images/snapshots/snapshot%d.pgm", i);
-            write_pgm_image(map1, maxval, k, k, fname);
-        #endif
+    //     #ifndef PROFILING
+    //         sprintf(fname, "images/snapshots/snapshot%d.pgm", i);
+    //         write_pgm_image(map1, maxval, k, k, fname);
+    //     #endif
 
-    }
+    // }
 
     #ifdef PROFILING
         double tend = CPU_TIME;
@@ -211,8 +205,11 @@ int main(int argc, char **argv)
     #endif
     
     free(map1);
-    free(map2);
+    printf("Address of map1: %p\n", map1);
+    printf("Address of map1_char: %p\n", map1_char);
+    if (e == STATIC)
+        free(map2);
         
-    MPI_Finalize();    
+    // MPI_Finalize();    
     return 0;
 }

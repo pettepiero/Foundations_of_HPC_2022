@@ -14,6 +14,7 @@ char update_cell(int alive_neighbours);
 void update_map(unsigned char *current, unsigned char *new, int size);
 void update_edges(unsigned char *restrict map, const int size);
 void print_map(unsigned char *restrict map, const int k);
+void init_to_zero(unsigned char *restrict map1, const int k);
 
 
 

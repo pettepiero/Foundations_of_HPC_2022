@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -pg -Wall -fstrict-aliasing -Wstrict-aliasing
+CFLAGS = -pg -Wall -fstrict-aliasing -Wstrict-aliasing -g
 PROFILEFLAGS = -DPROFILING
 OPENMPFLAGS = -fopenmp
 DEBUGFLAGS = -DDEBUG
