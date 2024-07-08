@@ -23,11 +23,9 @@ $(EXEC): $(OBJS)
 profile: CFLAGS += $(PROFILEFLAGS)
 profile: $(EXEC)
 
-openmp: clean
 openmp: CFLAGS += $(OPENMPFLAGS) $(PROFILEFLAGS)
-openmp: OPENMP_OBJS = $(filter $(OBJDIR)/gol.o $(OBJDIR)/read_write_pgm_image.o $(OBJDIR)/dynamics.o,$(OBJS))
-openmp: $(OPENMP_OBJS)
-	$(CC) $(CFLAGS) $(OPENMP_OBJS) -o $(EXEC)
+openmp: $(OBJS)
+	$(CC) $(CFLAGS) $(OBJS) -o $(EXEC)
 
 clean:
 	rm -f $(OBJDIR)/*.o $(EXEC)
