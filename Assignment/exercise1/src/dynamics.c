@@ -31,8 +31,7 @@ void init_to_zero(unsigned char *restrict map1, const int k)
         {
             for (int i=0; i<k; i++){
                 for(int j = 0; j <k; j++){
-                    map1_char[i*k +j] = 0;
-                    map2_char[i*k +j] = 0;
+                    map1[i*k +j] = 0;
                 }
             }
         }
@@ -164,8 +163,22 @@ char update_cell(const int alive_neighbours)
         return 255;
 }
 
+void ordered_evolution(unsigned char *restrict map, int size)
+{
+    for (int row = 1; row < size-1; row++)
+    {
+        for (int col = 1; col < size-1; col++)
+        {
+            int i = row*size + col;
+            int alive_counter = count_alive_neighbours(map, size, i);
+            map[i] = update_cell(alive_counter);
+        }
+    }
+}
+
+
 // Performs a single step of the update of the map
-void update_map(unsigned char *restrict current, unsigned char *restrict new, int size)
+void static_evolution(unsigned char *restrict current, unsigned char *restrict new, int size)
 {
     #if defined(_OPENMP)
 

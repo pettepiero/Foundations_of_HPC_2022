@@ -183,20 +183,24 @@ int main(int argc, char **argv)
         double tstart  = CPU_TIME;
     #endif
 
-    // for(int i = 0; i < N_STEPS; i++)
-    // {
-    //     #ifdef STATIC
-    //         update_map(map1, map2, k);
-    //     #else
-    //         update_map(map1, map1, k);
-    //     #endif
-        
-    //     #ifndef PROFILING
-    //         sprintf(fname, "images/snapshots/snapshot%d.pgm", i);
-    //         write_pgm_image(map1, maxval, k, k, fname);
-    //     #endif
 
-    // }
+    if (e == ORDERED){
+        for(int i = 0; i < N_STEPS; i++){
+            ordered_evolution(map1, k);
+            #ifndef PROFILING
+                sprintf(fname, "images/snapshots/snapshot%d.pgm", i);
+                write_pgm_image(map1, maxval, k, k, fname);
+            #endif
+        }
+    } else if (e == STATIC){
+        for(int i = 0; i < N_STEPS; i++){
+            static_evolution(map1, map1, k);
+            #ifndef PROFILING
+                sprintf(fname, "images/snapshots/snapshot%d.pgm", i);
+                write_pgm_image(map1, maxval, k, k, fname);
+            #endif
+        }
+    }
 
     #ifdef PROFILING
         double tend = CPU_TIME;
@@ -205,8 +209,6 @@ int main(int argc, char **argv)
     #endif
     
     free(map1);
-    printf("Address of map1: %p\n", map1);
-    printf("Address of map1_char: %p\n", map1_char);
     if (e == STATIC)
         free(map2);
         
