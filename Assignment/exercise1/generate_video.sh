@@ -2,11 +2,12 @@
 
 # Check if the parameter is provided
 if [ -z "$1" ]; then
-    echo "Please provide the name."
-    exit 1
+    echo "Using default name 'snapshot'"
+    name="snapshot"
+else
+    name=$1
 fi
 
-name=$1
 index=1
 
 mkdir -p images/snapshots/converted
@@ -20,4 +21,4 @@ for i in $(ls $name*.pgm | sort -V); do
 done
 
 echo "Finished loop"
-ffmpeg -r 15 -start_number 0 -i "converted/${name}_%d.jpeg" -vf "scale=iw*20:ih*20:flags=neighbor" -vcodec mpeg4 "output.mp4" -y
+ffmpeg -r 15 -start_number 0 -i "converted/${name}_%d.jpeg" -vcodec mpeg4 "output.mp4" -y

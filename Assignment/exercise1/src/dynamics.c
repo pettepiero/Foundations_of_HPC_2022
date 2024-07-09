@@ -22,6 +22,27 @@ unsigned char *generate_blinker(unsigned char *restrict map, char fileName[], in
 #endif
 
 
+void init_to_zero(unsigned char *restrict map1, const int k)
+{
+    #if defined(_OPENMP)
+        // Touching the maps in the different threads,
+        // so that each cache will be warmed-up appropriately
+        #pragma omp parallel
+        {
+            for (int i=0; i<k; i++){
+                for(int j = 0; j <k; j++){
+                    map1[i*k +j] = 0;
+                }
+            }
+        }
+        #else
+            for (int i=0; i<k; i++){
+                for(int j = 0; j<k; j++)
+                    map1[i*k +j] = 0;
+            }
+    #endif
+}
+
 void update_edges(unsigned char *restrict map, const int k)
 {
     // update top and bottom edges
@@ -142,9 +163,22 @@ char update_cell(const int alive_neighbours)
         return 255;
 }
 
-// Performs a single step of the update of the map
-void update_map(unsigned char *restrict current, unsigned char *restrict new, int size)
+void ordered_evolution(unsigned char *restrict map, int size)
 {
+    for (int row = 1; row < size-1; row++)
+    {
+        for (int col = 1; col < size-1; col++)
+        {
+            int i = row*size + col;
+            int alive_counter = count_alive_neighbours(map, size, i);
+            map[i] = update_cell(alive_counter);
+        }
+    }
+}
+
+void static_evolution(unsigned char *restrict current, unsigned char *restrict new, int num_elements, int size)
+{
+    /*Performs a single step of the update of the map*/
     #if defined(_OPENMP)
 
     #pragma omp parallel
@@ -163,19 +197,14 @@ void update_map(unsigned char *restrict current, unsigned char *restrict new, in
     }
     #else
     int i = 0;
-    for(int row=1; row < size-1; row++)
-        for(int col=1; col < size-1; col++)    
-    {
-        // int thread_num = omp_get_thread_num();
-        i = row*size + col;
-        int alive_counter = count_alive_neighbours(current, size, i);
-        new[i] = update_cell(alive_counter);
-        // printf("Thread %d assigned index %d\n", thread_num, i);
-    }
+    int alive_counter = 0;
 
+    for(int i=0; i<num_elements; i++)
+        alive_counter = count_alive_neighbours(current, size, i);
+        new[i] = update_cell(alive_counter);
     #endif
 
     update_edges(new, size);
 
-    memcpy(current, new, size*size*sizeof(char));
+    memcpy(current, new, num_elements*sizeof(char));
 }
