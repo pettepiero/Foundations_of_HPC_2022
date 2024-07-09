@@ -8,6 +8,7 @@ Functions that make gol.c file cleaner and improve its readability */
 #include <time.h>
 #include "read_write_pgm_image.h"
 #include "constants.h"
+#include "dynamics.h"
 #include <omp.h>
 
 void command_line_parser(int *action, int *k, int *k_boundaries, int *e, char **fname, int *n, int *s, int argc, char **argv){
@@ -91,7 +92,7 @@ void set_up_map_variable(int action, int evolution, int k, unsigned char *map, i
     if(action == RUN){
         printf("******************************\nRunning a playground\n******************************\n");
         printf("Reading map from %s\n", file);
-        read_pgm_image(&map, &maxval, &k, &k, file);
+        read_pgm_image((void *)&map, &maxval, &k, &k, file);
         write_pgm_image(map, maxval, k, k, "images/copy_of_image.pgm");
         printf("Read map from %s\n", file);
     }

@@ -36,9 +36,9 @@ int main(int argc, char **argv)
     int size_of_cluster;
     int process_rank;
     int n_lines_per_process;
-    int n_lines_of_last_process = 0;
+    //int n_lines_of_last_process = 0;
     int rows_to_send = 0;
-    int last_rows_to_send = 0;
+    //int last_rows_to_send = 0;
     void *map1 = NULL;
     void *map2 = NULL;
     unsigned char *map1_char = NULL;

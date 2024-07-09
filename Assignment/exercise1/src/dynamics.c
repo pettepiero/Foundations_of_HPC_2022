@@ -196,12 +196,12 @@ void static_evolution(unsigned char *restrict current, unsigned char *restrict n
         }
     }
     #else
-    int i = 0;
     int alive_counter = 0;
 
-    for(int i=0; i<num_elements; i++)
+    for(int i=0; i<num_elements; i++){
         alive_counter = count_alive_neighbours(current, size, i);
         new[i] = update_cell(alive_counter);
+    }
     #endif
 
     update_edges(new, size);
