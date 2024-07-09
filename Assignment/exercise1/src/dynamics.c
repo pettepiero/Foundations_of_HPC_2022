@@ -176,10 +176,9 @@ void ordered_evolution(unsigned char *restrict map, int size)
     }
 }
 
-
-// Performs a single step of the update of the map
-void static_evolution(unsigned char *restrict current, unsigned char *restrict new, int size)
+void static_evolution(unsigned char *restrict current, unsigned char *restrict new, int num_elements, int size)
 {
+    /*Performs a single step of the update of the map*/
     #if defined(_OPENMP)
 
     #pragma omp parallel
@@ -198,19 +197,14 @@ void static_evolution(unsigned char *restrict current, unsigned char *restrict n
     }
     #else
     int i = 0;
-    for(int row=1; row < size-1; row++)
-        for(int col=1; col < size-1; col++)    
-    {
-        // int thread_num = omp_get_thread_num();
-        i = row*size + col;
-        int alive_counter = count_alive_neighbours(current, size, i);
-        new[i] = update_cell(alive_counter);
-        // printf("Thread %d assigned index %d\n", thread_num, i);
-    }
+    int alive_counter = 0;
 
+    for(int i=0; i<num_elements; i++)
+        alive_counter = count_alive_neighbours(current, size, i);
+        new[i] = update_cell(alive_counter);
     #endif
 
     update_edges(new, size);
 
-    memcpy(current, new, size*size*sizeof(char));
+    memcpy(current, new, num_elements*sizeof(char));
 }
