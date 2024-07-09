@@ -10,6 +10,7 @@
 #include "constants.h"
 #include "dynamics.h"
 #include <omp.h>
+#include <mpi.h>
 #if !defined(_OPENMP)
 #warning "Run "make openmp" to enable OpenMP."
 #endif
@@ -30,6 +31,17 @@ int maxval = 255; //255 -> white, 0 -> black
 
 int main(int argc, char **argv)
 {
+	int rank, comm_size;
+	MPI_Init(&argc, &argv);
+	MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+	MPI_Comm_size( MPI_COMM_WORLD, &comm_size);
+	
+	if ( rank == 0){
+		printf("Rank: %d |\t Splitting %d lines in %d processors\n", rank, k, comm_size);
+		int n_lines_per_proc = k / comm_size;
+		printf("n_lines_per_proc = k / comm_size = %d / %d = %d", k, comm_size, n_lines_per_proc);
+	}
+
     action = 0;
     char *optstring = "irk:e:f:n:s:";
 
@@ -196,5 +208,6 @@ int main(int argc, char **argv)
     free(map1);
     free(map2);
         
+  MPI_Finalize();
     return 0;
 }

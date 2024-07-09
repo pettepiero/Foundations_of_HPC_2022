@@ -21,7 +21,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) -I$(INCDIR) -c $< -o $@
 
 $(EXEC): $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -o $(EXEC)
+	$(MPICC) $(CFLAGS) $(OBJS) -o $(EXEC)
 
 $(EXEC_MPI): $(OBJS)
 	$(MPICC) $(CFLAGS) $(OBJS) -o $(EXEC_MPI)
