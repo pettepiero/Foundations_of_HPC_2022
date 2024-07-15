@@ -16,7 +16,6 @@
 
 int   action = 0;
 int   k      = K_DFLT;
-int   k_boundaries = K_DFLT + 2;
 int   e      = STATIC;
 int   n      = 10000;
 int   s      = 1;
@@ -36,15 +35,11 @@ int main(int argc, char **argv)
     int size_of_cluster;
     int process_rank;
     int n_lines_per_process;
-    //int n_lines_of_last_process = 0;
     int rows_to_send = 0;
-    //int last_rows_to_send = 0;
     void *map1 = NULL;
     void *map2 = NULL;
     unsigned char *map1_char = NULL;
-    unsigned char *map2_char = NULL;
-    unsigned char *local_map1 = NULL;
-    unsigned char *local_map2 = NULL;
+    unsigned char *sub_map = NULL;
     char file[] = "images/blinker.pgm";
 
     MPI_Comm_size(MPI_COMM_WORLD, &size_of_cluster);
@@ -56,27 +51,12 @@ int main(int argc, char **argv)
         2. Read or generate matrix
         3. Calculate the lines per process*/
     if(process_rank == 0){
-
-        command_line_parser(&action, &k, &k_boundaries, &e, &fname, &n, &s, argc, argv);
-        
-        printf("Rank: %d |\tSize of cluster: %d\n", process_rank, size_of_cluster);
-        n_lines_per_process = k_boundaries / size_of_cluster;
-        
-        /*NOTE: deal with the case where k%size_of_cluster !=0 */
-        // if (k%size_of_cluster != 0)
-        //     n_lines_of_last_process = n_lines_per_process + k%size_of_cluster;
-
-        rows_to_send = n_lines_per_process + 2; // Each process gets an extra row above and below
-        // last_rows_to_send = n_lines_of_last_process + 2;
-
-        printf("Rank: %d |\tNumber of lines per process: %d/%d=%d\n", k_boundaries, size_of_cluster, process_rank, n_lines_per_process);
         #ifndef _OPENMP
             printf("\nExecuting without OPENMP in serial mode.\n");
         #endif
-        }
-
+        command_line_parser(&action, &k, &e, &fname, &n, &s, argc, argv);
         if((action != RUN) && (action != INIT)){
-            printf("No action specified\n");
+	    printf("Rank %d: No action specified\n", process_rank);
             printf("Possible actions:\n"
                     "r - Run a world\n"
                     "i - Initialize a world\n"
@@ -86,17 +66,28 @@ int main(int argc, char **argv)
             exit(1);
         }
 
-        set_up_map_variable(action, e, k_boundaries, map1, maxval, file);
+        n_lines_per_process = k/ size_of_cluster;
+        /*NOTE: deal with the case where k%size_of_cluster !=0 */
+
+        printf("Rank: %d \tNumber of lines per process: %d/%d=%d\n", process_rank, k, size_of_cluster, n_lines_per_process);
+
+	map1 = (unsigned char*)malloc(k*k*sizeof(unsigned char));
+	if (map1 == NULL)
+	{
+		printf("Error: Could not allocate memory for map1\n");
+		exit(1);
+	}
+
+	set_up_map_variable(action, e, k, &map1, maxval, file);
         map1_char = (unsigned char*)map1;
-
         if (e == STATIC){
-            static_set_up_other_map(map1, map2, k_boundaries);
-            map2_char = (unsigned char*)map2;
+            static_set_up_other_map(map1, map2, k);
         } else if (e == ORDERED)
-            init_to_zero(map1_char, k_boundaries);
-
+            init_to_zero(map1_char, k);
+    }
     /*Make every process wait for process 0 to perform the task above*/
-    MPI_Barrier(MPI_COMM_WORLD);
+	MPI_Barrier(MPI_COMM_WORLD);
+	MPI_Bcast(&n_lines_per_process, 1, MPI_INT, 0, MPI_COMM_WORLD);  
 
     #if defined(_OPENMP)
     #pragma omp parallel 
@@ -108,8 +99,7 @@ int main(int argc, char **argv)
         }
     }
     #endif
-
-    #ifdef PROFILING
+#ifdef PROFILING
         printf("***************************************\n");
         printf("In profiling mode, not generating images\n");
         printf("***************************************\n");
@@ -119,7 +109,7 @@ int main(int argc, char **argv)
     if (e == ORDERED){
         printf("\nOrdered evolution to be implemented with MPI\n");
         // for(int i = 0; i < N_STEPS; i++){
-        //     ordered_evolution(map1, k);
+        //     ordered_evolution(map1, k, rows_to_send);
         //     #ifndef PROFILING
         //         sprintf(fname, "images/snapshots/snapshot%d.pgm", i);
         //         write_pgm_image(map1, maxval, k, k, fname);
@@ -130,63 +120,103 @@ int main(int argc, char **argv)
     } else if (e == STATIC){
         for(int i = 0; i < N_STEPS; i++){
 
-                /* Not using MPI_Scatter because I want to specify the rows to send exactly. */
+			/* Not using MPI_Scatter because I want to specify the rows to send exactly. */
 
-            if (process_rank ==0){
-                for (int i = 0; i < size_of_cluster; i++){
-                    int start_row = i * (n_lines_per_process + 1);
-                    int end_row = start_row + rows_to_send - 1;
-                    if (end_row >= k_boundaries)
-                        end_row = k_boundaries - 1; // Limit end_row to the matrix size
+		if (process_rank ==0){
+			for (int i = 0; i < size_of_cluster; i++){
+				int start_row = i * (n_lines_per_process + 1);
+				int end_row = start_row + n_lines_per_process - 1;
+				if (end_row >= k)
+					end_row = k- 1; // Limit end_row to the matrix size
+				int rows_to_copy = end_row - start_row + 1;
+				MPI_Send(map1_char + start_row * k, rows_to_copy * k, MPI_UNSIGNED_CHAR, i, 0, MPI_COMM_WORLD);
+			}
+		}
 
-                    int rows_to_copy = end_row - start_row + 1;
-                    MPI_Send(map1_char + start_row * k, rows_to_copy * k, MPI_UNSIGNED_CHAR, i, 0, MPI_COMM_WORLD);
-                }
-            }
+		int start_row = process_rank * (n_lines_per_process + 1);
+		int end_row = start_row + rows_to_send - 1;
 
-            int start_row = process_rank * (n_lines_per_process + 1);
-            int end_row = start_row + rows_to_send - 1;
-            if (end_row >= k_boundaries)
-                end_row = k_boundaries - 1; // Limit end_row to the matrix size
+		if (end_row >= k)
+			end_row = k- 1; // Limit end_row to the matrix size
 
-            int rows_to_receive = end_row - start_row + 1;
+		int rows_to_receive = end_row - start_row + 1;
 
-            //Allocate space for local maps
-            local_map1 = (unsigned char*)malloc(rows_to_receive * k * sizeof(unsigned char));
-            local_map2 = (unsigned char*)malloc(rows_to_receive * k * sizeof(unsigned char));
-            if (local_map1 == NULL || local_map2 == NULL){
-                printf("Error: Could not allocate memory for local maps\n");
-                exit(1);
-            }
+		//Allocate space for local maps
+		sub_map = (unsigned char*)malloc(rows_to_receive * k * sizeof(unsigned char));
+		if (sub_map == NULL){
+			printf("Error: Could not allocate memory for local maps\n");
+			exit(1);
+		}
 
-            MPI_Recv(local_map1, rows_to_receive * k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(sub_map, rows_to_receive * k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-            printf("Process %d received the submatrix\n", process_rank);
+		printf("Process %d received the submatrix\n", process_rank);
+		
+		printf("Rank %d - Saving received matrix to local variables\n", process_rank);
 
-            static_evolution(local_map1, local_map2, k*n_lines_per_process, k);
+		unsigned char* local_map = malloc((rows_to_receive+2)*k*sizeof(unsigned char));
+		unsigned char* local_map2 = malloc((rows_to_receive+2)*k*sizeof(unsigned char));
 
-            printf("Process %d finished the step\n", process_rank);
+		if(local_map == NULL || local_map2 == NULL){
+			printf("Rank %d - Error in allocating local maps\n\n", process_rank);
+			exit(1);
+		}
 
-            // Gather the modified submatrices back to the root process
-            // Note: This part needs adjustment based on how you want to gather the results
-            // This simple example assumes gathering only the main portions without the extra rows
-            if (process_rank == 0) {
-                printf("Process %d: gathering the results\n", process_rank);     
+		int index;
+		for (int i=0; i<rows_to_receive; i++){
+			for(int j=0; j<k; j++){
+				index = i*k+j;
+				local_map[index+k] = sub_map[index];	
+			}
+		}
 
-                for (int i = 0; i < size_of_cluster; i++) {
-                    int gather_start_row = i * n_lines_per_process;
-                    int gather_rows_to_receive = n_lines_per_process;
-                    MPI_Recv(map1_char + gather_start_row * k, gather_rows_to_receive * k, MPI_UNSIGNED_CHAR, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                }
-            } else {
-                int gather_start_row = (process_rank == 0) ? 0 : 1;
-                int gather_rows_to_send = n_lines_per_process;
-                MPI_Send(local_map1 + gather_start_row * k, gather_rows_to_send * k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD);
-            }
+		printf("Rank %d - Setting up borders of local copy\n", process_rank);	
 
-            if (process_rank == 0) {
-                printf("Received full matrix\n");
-            }
+		for (int i=0; i < k; i++){
+			local_map[i] = local_map[i+k*rows_to_receive];
+			local_map[i+k*(rows_to_receive+1)] = local_map[i+k];
+		}
+			
+		unsigned char left_col[rows_to_receive+2];
+		unsigned char right_col[rows_to_receive+2];
+
+		/* Writing left and right columns */
+		for (int i =1; i<rows_to_receive+1; i++){
+			left_col[i] = local_map[i*k+k-1];
+			right_col[i] = local_map[i*k];
+		}
+		/* Writing corners */
+		left_col[0] = local_map[k*rows_to_receive+k-1]; 
+		left_col[rows_to_receive+1] = local_map[2*k -1]; 
+		right_col[0] = local_map[rows_to_receive*k]; 
+		right_col[rows_to_receive+1] = local_map[k]; 
+
+		/*Perform evolution in parallel*/
+		static_evolution(local_map, local_map2, left_col, right_col, rows_to_receive, k);
+
+		printf("Process %d finished the step\n", process_rank);
+
+		/*NOTE: gathering has to be properly implemented*/
+		if (process_rank == 0) {
+			printf("Process %d: gathering the results\n", process_rank);     
+
+			for (int i = 0; i < size_of_cluster; i++) {
+			    int gather_start_row = i * n_lines_per_process;
+			    int gather_rows_to_receive = n_lines_per_process;
+			    MPI_Recv(map1_char + gather_start_row * k, gather_rows_to_receive * k, MPI_UNSIGNED_CHAR, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			}
+		} else {
+			int gather_start_row = (process_rank == 0) ? 0 : 1;
+			int gather_rows_to_send = n_lines_per_process;
+			MPI_Send(local_map + gather_start_row * k, gather_rows_to_send * k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD);
+		}
+
+		if (process_rank == 0) {
+			printf("Received full matrix\n");
+		}
+	
+		free(sub_map);
+		free(local_map);
         }
     }
 
@@ -197,8 +227,6 @@ int main(int argc, char **argv)
     #endif
     
     free(map1);
-    free(local_map1);
-    free(local_map2);
     if (e == STATIC)
         free(map2);
 

@@ -43,20 +43,13 @@ void init_to_zero(unsigned char *restrict map1, const int k)
     #endif
 }
 
-void update_edges(unsigned char *restrict map, const int k)
+void update_horizontal_edges(unsigned char *restrict map, const int n_cols, const int n_inner_rows)
 {
     // update top and bottom edges
-    for (int i=1; i<k-1; i++)
+    for (int i=0; i<n_cols; i++)
     {
-        map[i] = map[i+k*(k-2)];
-        map[i+k*(k-1)] = map[i+k];
-    }
-
-    // update left and right edges
-    for (int i=0; i< k; i++)
-    {
-        map[i*k] = map[i*k + k-2];
-        map[i*k + k-1] = map[i*k + 1];
+        map[i] = map[i+n_cols*n_inner_rows];
+        map[i+n_cols*(n_inner_rows+1)] = map[i+n_cols];
     }
 }
 
@@ -113,7 +106,6 @@ unsigned char *generate_map(unsigned char *restrict map, const char fileName[], 
                 map[i*k +j] = 0;
             }
     }
-    update_edges(map, k);
 
     write_pgm_image(map, maxval, k, k, fileName);
     printf("PGM file created: %s\n", fileName);
@@ -131,26 +123,33 @@ void get_active_zones()
 //IDEA: Use a lookup table for the neighbours ? 
 //IDEA: would it be faster to calculate neighbours for more than one position, therefore reducing #function calls?
 
-int count_alive_neighbours(unsigned char *restrict map, const int size, const int index)
+int count_alive_neighbours(unsigned char *restrict map, const int n_cols, const int index)
 {
-    // NOTE: indexes that are passed should not be on the edges!
-    int count = 0;
-    int neighbours[] = {index-1, index+1, index-size, index+size, index-size-1, index-size+1, index+size-1, index+size+1};
+	// NOTE: indexes that are passed should not be on the edges!
+	if (index > n_cols){
+		int count = 0;
+		int neighbours[] = {index-1, index+1, index-n_cols, index+n_cols, index-n_cols-1, index-n_cols+1, index+n_cols-1, index+n_cols+1};
 
-    // #ifdef DEBUG
-    // printf("Neighbours of %d: \n", index);
-    // for (int i=0; i<8; i++)
-    // {
-    //     printf("%d=%d \n", neighbours[i], map[neighbours[i]]);
-    // }
-    // #endif
+	    // #ifdef DEBUG
+	    // printf("Neighbours of %d: \n", index);
+	    // for (int i=0; i<8; i++)
+	    // {
+	    //     printf("%d=%d \n", neighbours[i], map[neighbours[i]]);
+	    // }
+	    // #endif
 
-    for (int i = 0; i < 8; i++)
-        if (map[neighbours[i]] == 255)
-            count++;
+		for (int i = 0; i < 8; i++)
+			if (map[neighbours[i]] == 255)
+			    count++;
 
+		return count;
+	}
+	else {
+		printf("Error in count_alive_neighbours\n");
+		printf("index < n_cols\n");
+		exit(1);
+	}
 
-    return count;
 }
 
 // I believe the compiler will optimize this with a ternary operation.
@@ -163,48 +162,111 @@ char update_cell(const int alive_neighbours)
         return 255;
 }
 
-void ordered_evolution(unsigned char *restrict map, int size)
+void n_colsordered_evolution(unsigned char *restrict map, int n_cols, int n_rows)
 {
-    for (int row = 1; row < size-1; row++)
+    for (int row = 1; row < n_rows-1; row++)
     {
-        for (int col = 1; col < size-1; col++)
+        for (int col = 1; col < n_cols-1; col++)
         {
-            int i = row*size + col;
-            int alive_counter = count_alive_neighbours(map, size, i);
+            int i = row*n_cols+ col;
+            int alive_counter = count_alive_neighbours(map, n_cols, i);
             map[i] = update_cell(alive_counter);
         }
     }
 }
 
-void static_evolution(unsigned char *restrict current, unsigned char *restrict new, int num_elements, int size)
+
+void edges_static_evolution(unsigned char *restrict current, unsigned char *restrict new, unsigned char left_col[], unsigned char right_col[], int n_inner_rows, int n_cols){
+	int left_counter = 0;
+	int right_counter = 0;
+	for(int row=1; row < n_inner_rows-1; row++){
+		left_counter += left_col[row-1];	
+		left_counter += left_col[row];	
+		left_counter += left_col[row+1];	
+		left_counter += current[(row-1)*n_cols+1];	
+		left_counter += current[(row-1)*n_cols];	
+		left_counter += current[row*n_cols+1];	
+		left_counter += current[(row+1)*n_cols];
+		left_counter += current[(row+1)*n_cols+1];
+		new[row*n_cols] = update_cell(left_counter);
+
+		right_counter += right_col[row-1];	
+		right_counter += right_col[row];	
+		right_counter += right_col[row+1];	
+		right_counter += current[(row-1)*n_cols+n_cols-1];	
+		right_counter += current[(row-1)*n_cols+n_cols-2];	
+		right_counter += current[row*n_cols+n_cols-2];	
+		right_counter += current[(row+1)*n_cols+n_cols-1];
+		right_counter += current[(row+1)*n_cols+n_cols-2];
+		new[row*n_cols+n_cols-1] = update_cell(right_counter);
+	} 
+}
+
+void static_evolution(unsigned char *restrict current, unsigned char *restrict new, unsigned char left_col[], unsigned char right_col[], int n_inner_rows, int n_cols)
 {
     /*Performs a single step of the update of the map*/
-    #if defined(_OPENMP)
+   
+	#if defined(_OPENMP)
+	#pragma omp parallel {    
+		int i = 0;
+		#pragma omp for collapse(2)
+		for(int row=1; row < n_inner_rows-1; row++)
+		    for(int col=1; col < n_cols-1; col++)    
+		{
+		    i = row*size + col;
+		    int alive_counter = count_alive_neighbours(current, size, i);
+		    new[i] = update_cell(alive_counter);
+		}
+	}
+	#else
 
-    #pragma omp parallel
-    {    
-        int i = 0;
-        #pragma omp for collapse(2)
-        for(int row=1; row < size-1; row++)
-            for(int col=1; col < size-1; col++)    
-        {
-            // int thread_num = omp_get_thread_num();
-            i = row*size + col;
-            int alive_counter = count_alive_neighbours(current, size, i);
-            new[i] = update_cell(alive_counter);
-            // printf("Thread %d assigned index %d\n", thread_num, i);
-        }
-    }
-    #else
-    int alive_counter = 0;
+	int alive_counter = 0;
+	int left_counter = 0;
+	int right_counter = 0;
+	int i = 0;
+	/*for(int row=1; row < n_inner_rows-1; row++)
+	    for(int col=0; col < n_cols; col++)    
+	{
+	    i = row*n_cols + col;
+	    alive_counter = count_alive_neighbours(current, n_cols, i);
+	    new[i] = update_cell(alive_counter);
+	}*/
 
-    for(int i=0; i<num_elements; i++){
-        alive_counter = count_alive_neighbours(current, size, i);
-        new[i] = update_cell(alive_counter);
-    }
-    #endif
+	for(int row=1; row < n_inner_rows-1; row++){
+		for(int col=1; col < n_cols-1; col++){
+		/*Count alive neighbours easily from matrix */
+			i = row*n_cols + col;
+			alive_counter = count_alive_neighbours(current, n_cols, i);
+			new[i] = update_cell(alive_counter);
+			
+		}	
+		/*Count alive neighbours for left and right
+ * 		 border elements */
+		left_counter = 0;
+		right_counter = 0;
+		left_counter += left_col[row-1];	
+		left_counter += left_col[row];	
+		left_counter += left_col[row+1];	
+		left_counter += current[(row-1)*n_cols+1];	
+		left_counter += current[(row-1)*n_cols];	
+		left_counter += current[row*n_cols+1];	
+		left_counter += current[(row+1)*n_cols];
+		left_counter += current[(row+1)*n_cols+1];
+		new[row*n_cols] = update_cell(left_counter);
 
-    update_edges(new, size);
+		right_counter += right_col[row-1];	
+		right_counter += right_col[row];	
+		right_counter += right_col[row+1];	
+		right_counter += current[(row-1)*n_cols+n_cols-1];	
+		right_counter += current[(row-1)*n_cols+n_cols-2];	
+		right_counter += current[row*n_cols+n_cols-2];	
+		right_counter += current[(row+1)*n_cols+n_cols-1];
+		right_counter += current[(row+1)*n_cols+n_cols-2];
+		new[row*n_cols+n_cols-1] = update_cell(right_counter);
+	}
+	#endif
 
-    memcpy(current, new, num_elements*sizeof(char));
+	update_horizontal_edges(new, n_cols, n_inner_rows);
+
+	memcpy(current, new, n_cols*(n_inner_rows)+2*sizeof(unsigned char));
 }

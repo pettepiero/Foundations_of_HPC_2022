@@ -1,0 +1,5 @@
+salloc -n1 -N1 -p EPYC -A dssc --time=01:00:00
+salloc -n2 -N2 -p EPYC -A dssc --time=01:00:00
+
+mpirun -np 2 valgrind --leak-check=full --track-origins=yes build/gol.x -i &> valgrind_output.txt
+  885  vim valgrind_output.txt

@@ -1,0 +1,7 @@
+Notes on how the program works
+
+1) Process with rank 0 either reads or creates the matrix and saves it in map1. In this variable there are no extra rows for periodic boundaries. It is a square matrix of size k*k.
+2) Process 0 broadcasts to all other processes the number of lines that they will receive (they all receive the same value of n_lines_per_process, but the last process could receive less lines). This value is needed to calculate the rows that each process really receives (this might be wrong now that I think about it, try to understand it).
+3) Process 0 sends portions of the matrix using MPI_Send and not MPIbroadcast because we want to specify what each process receives. Each process then allocates a space for this sub matrix and then stores it in a bigger matrix that has extra rows for horizontal periodic boundaries. Vertical periodic boundaries are dealt with left_edge and right_edge vectors.
+
+4) Gathering of the results for sure doesn't work yet
