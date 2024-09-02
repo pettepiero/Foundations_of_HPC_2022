@@ -31,6 +31,7 @@ void command_line_parser(int *action, int *k, int *e, char **fname, int *n, int 
             printf("Error: matrix dimension k must be greater than 0 and smaller than 100000\n");
             exit(1);
         }
+	printf("Selected matrix dimension %d\n.", *k);
         break;
 
         case 'e':
@@ -52,7 +53,7 @@ void command_line_parser(int *action, int *k, int *e, char **fname, int *n, int 
             printf("Error: Could not allocate memory for file name\n");
             exit(1);
         }
-        sprintf(*fname, "%s", optarg );
+	strcpy(*fname, optarg);
         printf("Reading file: %s\n", *fname);
         break;
 
@@ -90,15 +91,29 @@ void set_up_map_variable(int action, int evolution, int size, void **map, int ma
              */
     if(action == RUN){
         printf("******************************\nRunning a playground\n******************************\n");
+	printf("NOTE: if k != K_DFLT, then new blinker of appropriate size will be created\n");
         printf("Reading map from %s\n", file);
+	if(size != K_DFLT){
+		free(*map);
+		*map = NULL;
+        	*map = (unsigned char*)malloc(size*size*sizeof(unsigned char));
+	        if (*map == NULL){
+            		printf("Error: Could not allocate memory for map\n");
+            		exit(1);
+       		}
+		generate_blinker((void *)map, "images/blinker.pgm", size);
+	}
 	read_pgm_image((void *)map, &maxval, &size, &size, file);
-	write_pgm_image(map, maxval, size, size, "images/copy_of_image.pgm");
+		
+	print_map(0, size, size, *map);
+
+		
+	write_pgm_image(*map, maxval, size, size, "images/copy_of_image.pgm");
         printf("Read map from %s\n", file);
     }
     else if(action == INIT){
 	free(*map);
 	*map = NULL;
-
         *map = (unsigned char*)malloc(size*size*sizeof(unsigned char));
         if (*map == NULL)
         {
@@ -145,4 +160,24 @@ void static_set_up_other_map(unsigned char *map1, unsigned char *map2, int size)
         exit(1);
     }
     memcpy(map2, map1, size*size*sizeof(unsigned char));
+}
+
+void print_map(int process_rank, int rows_to_receive, int k, unsigned char *map){
+
+		printf("Process %d:\n", process_rank);
+		for (int i=0; i<rows_to_receive+2; i++){
+			for (int j=0; j<k; j++)
+				printf("%d ", map[i*k+j]);
+			printf("\n");
+		}	
+}
+
+int nrows_given_process(int process_rank, int n_lines_per_process, int max_nrows){
+
+	int start_row = process_rank * (n_lines_per_process);
+	int end_row = start_row + n_lines_per_process- 1;
+
+	if (end_row >= max_nrows)
+		end_row = max_nrows- 1; // Limit end_row to the matrix size
+	return end_row - start_row + 1;
 }

@@ -8,7 +8,6 @@
 #include <omp.h>
 
 
-#ifdef BLINKER
 unsigned char *generate_blinker(unsigned char *restrict map, char fileName[], int size){
     // Blinker
     map[(int)(size)/2 * size + (int)(size /2)] = 255;
@@ -19,7 +18,6 @@ unsigned char *generate_blinker(unsigned char *restrict map, char fileName[], in
     printf("PGM file created: %s\n", fileName);
     return map;
 }
-#endif
 
 
 void init_to_zero(unsigned char *restrict map1, const int k)
@@ -53,15 +51,6 @@ void update_horizontal_edges(unsigned char *restrict map, const int n_cols, cons
     }
 }
 
-void print_map(unsigned char *restrict map, const int k)
-{
-    for (int i=0; i<k; i++){
-        for(int j = 0; j <k; j++){
-            printf("%d\t", map[i*k +j]);
-        }
-        printf("\n");
-    }
-}
 
 void print_map_to_file(unsigned char *restrict map, const int k, const char fileName[])
 {
@@ -180,24 +169,24 @@ void edges_static_evolution(unsigned char *restrict current, unsigned char *rest
 	int left_counter = 0;
 	int right_counter = 0;
 	for(int row=1; row < n_inner_rows-1; row++){
-		left_counter += left_col[row-1];	
-		left_counter += left_col[row];	
-		left_counter += left_col[row+1];	
-		left_counter += current[(row-1)*n_cols+1];	
-		left_counter += current[(row-1)*n_cols];	
-		left_counter += current[row*n_cols+1];	
-		left_counter += current[(row+1)*n_cols];
-		left_counter += current[(row+1)*n_cols+1];
+		left_counter += left_col[row-1] -'0';	
+		left_counter += left_col[row]-'0';	
+		left_counter += left_col[row+1]-'0';	
+		left_counter += current[(row-1)*n_cols+1]-'0';	
+		left_counter += current[(row-1)*n_cols]-'0';	
+		left_counter += current[row*n_cols+1]-'0';	
+		left_counter += current[(row+1)*n_cols]-'0';
+		left_counter += current[(row+1)*n_cols+1]-'0';
 		new[row*n_cols] = update_cell(left_counter);
 
-		right_counter += right_col[row-1];	
-		right_counter += right_col[row];	
-		right_counter += right_col[row+1];	
-		right_counter += current[(row-1)*n_cols+n_cols-1];	
-		right_counter += current[(row-1)*n_cols+n_cols-2];	
-		right_counter += current[row*n_cols+n_cols-2];	
-		right_counter += current[(row+1)*n_cols+n_cols-1];
-		right_counter += current[(row+1)*n_cols+n_cols-2];
+		right_counter += right_col[row-1]-'0';	
+		right_counter += right_col[row]-'0';	
+		right_counter += right_col[row+1]-'0';	
+		right_counter += current[(row-1)*n_cols+n_cols-1]-'0';	
+		right_counter += current[(row-1)*n_cols+n_cols-2]-'0';	
+		right_counter += current[row*n_cols+n_cols-2]-'0';	
+		right_counter += current[(row+1)*n_cols+n_cols-1]-'0';
+		right_counter += current[(row+1)*n_cols+n_cols-2]-'0';
 		new[row*n_cols+n_cols-1] = update_cell(right_counter);
 	} 
 }
@@ -238,8 +227,8 @@ void static_evolution(unsigned char *restrict current, unsigned char *restrict n
 			i = row*n_cols + col;
 			alive_counter = count_alive_neighbours(current, n_cols, i);
 			new[i] = update_cell(alive_counter);
-			
 		}	
+
 		/*Count alive neighbours for left and right
  * 		 border elements */
 		left_counter = 0;

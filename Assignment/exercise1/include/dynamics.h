@@ -3,9 +3,7 @@
 #include "constants.h"
 #include "utilities.h"
 
-#ifdef BLINKER
 unsigned char *generate_blinker(unsigned char* map, char fileName[], int size);
-#endif
 
 unsigned char   *generate_map(unsigned char* map, char fileName[], float probability, int k, const int seed);
 void            get_active_zones();
@@ -15,7 +13,6 @@ char            update_cell(int alive_neighbours);
 void            ordered_evolution(unsigned char *restrict map, int size);
 void static_evolution(unsigned char *restrict current, unsigned char *restrict new, unsigned char left_col[], unsigned char right_col[], int n_inner_rows, int n_cols);
 void            update_horizontal_edges(unsigned char *restrict map, const int n_cols, const int n_rows);
-void            print_map(unsigned char *restrict map, const int k);
 void            init_to_zero(unsigned char *restrict map1, const int k);
 
 

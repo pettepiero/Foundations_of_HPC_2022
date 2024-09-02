@@ -1,7 +1,7 @@
 CC = gcc
 MPICC = mpicc
-CFLAGS = -pg -Wall -fstrict-aliasing -Wstrict-aliasing -g
-PROFILEFLAGS = -DPROFILING
+CFLAGS = -Wall -fstrict-aliasing -Wstrict-aliasing -g
+PROFILEFLAGS = -pg -DPROFILING
 OPENMPFLAGS = -fopenmp
 DEBUGFLAGS = -DDEBUG
 MPIFLAGS = -DUSE_MPI
@@ -42,7 +42,7 @@ $(OBJDIR)/mpi/%.o: $(SRCDIR)/%.c
 	$(MPICC) $(CFLAGS) -I$(INCDIR) -c $< -o $@
 
 mpi: $(MPI_OBJS)
-	$(MPICC) $(CFLAGS) $(MPIFLAGS) $(MPI_OBJS) -o $(EXEC)
+	$(MPICC) $(CFLAGS) $(MPIFLAGS) $(MPI_OBJS) -g -O0 -o $(EXEC)
 
 # Clean target
 clean:
