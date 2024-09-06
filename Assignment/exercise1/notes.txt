@@ -11,3 +11,6 @@ Notes on how the program works
 valgrind + mpi command:
 
 mpirun -np 2 valgrind --leak-check=full --show-reachable=yes --track-origins=yes --suppressions=/opt/programs/openMPI/4.1.6/share/openmpi/openmpi-valgrind.supp --log-file=nc.vg.%p ./build/gol.x -r -k 20
+
+
+1. rivedere indici finali e iniziali di cosa mandi a ogni processore x fare in modo che si sovrappongano
