@@ -91,11 +91,17 @@ void set_up_map_variable(int action, int evolution, int k, void **map, int maxva
              */
 	int nrows = k+ 2;
 	int ncols = k;
-        *map = (unsigned char*)malloc(nrows*ncols*sizeof(unsigned char));
+	if (*map != NULL){
+		printf("Error: *map is not NULL, risk of leakage\n");
+		exit(1);
+	}
+        *map = (void *)calloc(nrows*ncols, sizeof(unsigned char));
 	if (*map == NULL){
         	printf("Error: Could not allocate memory for map\n");
             	exit(1);
        	}
+
+	printf("DEBUG: dimensions of full map are %d x %d = %d elements\n", nrows, ncols, nrows*ncols);
 
 	if(action == RUN){
         	printf("******************************\nRunning a playground\n******************************\n");
@@ -103,12 +109,12 @@ void set_up_map_variable(int action, int evolution, int k, void **map, int maxva
         	printf("Reading map from %s\n", file);
 		if(k != K_DFLT){
 			printf("Detected size != K_DFLT\n");
-			printf("map = %p\n", map);
-			printf("*map = %p\n", *map);
-
-			generate_blinker((void *)map, "images/blinker.pgm", ncols, nrows);
+			generate_blinker(*map, "images/blinker.pgm", ncols, nrows);
 		}
-		read_pgm_image((void *)map, &maxval, &ncols, &nrows, file);
+		read_pgm_image(map, &maxval, &ncols, &nrows, file);
+
+
+		printf("***************************************************************************\nDEBUG:\n");
 		
 		write_pgm_image(*map, maxval, ncols, nrows, "images/copy_of_image.pgm");
         	printf("Read map from %s\n", file);
@@ -184,12 +190,12 @@ void static_set_up_other_map(unsigned char *map1, void **map2, int size){       
 	printf("\nAfter memcpy: map1 = %p, *map2 = %p\n", map1, *map2);                                                                             
 }                          
 
-void print_map(int process_rank, int rows_to_receive, int k, unsigned char *map){
+void print_map(int process_rank, int k, int rows_to_receive, unsigned char *map){
 
 		printf("Process %d:\n", process_rank);
-		for (int i=0; i<rows_to_receive+2; i++){
+		for (int i=0; i<rows_to_receive; i++){
 			for (int j=0; j<k; j++)
-				printf("%d ", map[i*k+j]);
+				printf("%4d", map[i*k+j]);
 			printf("\n");
 		}	
 }
@@ -218,8 +224,8 @@ void calculate_rows_per_processor(int nrows, int nprocessors, int *rows_per_proc
 			rows_per_processor[i]++;
 		}
 		if(i == nprocessors-1){
-			rows_per_processor[i] = nrows -1 - start_indices[i];
+			rows_per_processor[i] = nrows - start_indices[i];
 		}
-		start_row = start_indices[i] + rows_per_processor[i];
+		start_row = start_indices[i] + rows_per_processor[i]-1;
 	}
 }

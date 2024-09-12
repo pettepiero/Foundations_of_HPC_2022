@@ -57,8 +57,6 @@ int main(int argc, char** argv)
         2. Read or generate matrix
         3. Calculate the lines per process*/
     	if(process_rank == 0){
-		nrows = k+2;
-		printf("\nDEBUG: nrows = %d\n", nrows);
 	        #ifndef _OPENMP
 	        	printf("\nExecuting without OPENMP in serial mode.\n");
 			printf("Size of cluster: %d\n", size_of_cluster);
@@ -74,13 +72,28 @@ int main(int argc, char** argv)
 	                    "e 1 - Static evolution\n\n");
 	            exit(1);
 	        }
+		nrows = k+2;
 		calculate_rows_per_processor(nrows, size_of_cluster, rows_per_processor, start_indices);
 	
+		printf("rows_per_processor = \n");
+		for (int j =0; j<size_of_cluster; j++){
+			printf("%d, ", rows_per_processor[j]);
+		}
+		printf("\n");
+
+		printf("start_indices = \n");
+		for (int j =0; j<size_of_cluster; j++){
+			printf("%d, ", start_indices[j]);
+		}
+		printf("\n");
+	
 		set_up_map_variable(action, e, k, &map1, maxval, file);
-		printf("Process %d: map1 = %p\n", process_rank, map1);
 	        map1_char = (unsigned char*)map1;
-		printf("Process %d: map1_char = %p\n", process_rank, map1_char);
 		
+		printf("***********************************************************\n");
+		print_map(process_rank, k, nrows, map1_char);
+		printf("***********************************************************\n");
+
 	        if (e == STATIC){
 	            static_set_up_other_map(map1, &map2, k);
 			printf("\nAfter static_set_up_other_map: map1 = %p, map2 = %p\n", map1, map2); 
@@ -94,18 +107,15 @@ int main(int argc, char** argv)
 		for (int i=1; i<size_of_cluster; i++){
 			MPI_Send(&rows_per_processor[i], 1, MPI_INT, i, 0, MPI_COMM_WORLD);
 			MPI_Send(&start_indices[i], 1, MPI_INT, i, 0, MPI_COMM_WORLD); 
+			MPI_Send(&k, 1, MPI_INT, i, 0, MPI_COMM_WORLD); 
 		}
 		
     	} else {
 		MPI_Recv(&my_process_rows, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
 		MPI_Recv(&my_process_start_idx, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
+		MPI_Recv(&k, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
+		printf("Process %d receives %d rows \n", process_rank, my_process_rows); 
 	}
-	/* DEBUG */
-	MPI_Barrier(MPI_COMM_WORLD);
-	if (process_rank == 0){
-		printf("First send/receive completed succesfully\n");
-	}
-	/* END DEBUG */
 	
     if (e == ORDERED){
         printf("\nOrdered evolution to be implemented with MPI\n");
@@ -118,71 +128,91 @@ int main(int argc, char** argv)
 		printf("Process %d allocated sub_map at %p\n", process_rank, sub_map);
 		printf("Process %d: size of sub_map= %d\n", process_rank, my_process_rows*k);
 		if (sub_map == NULL || sub_map_copy == NULL){
-			printf("Error: Could not allocate memory for local maps\n");
+			printf("Process %d error: Could not allocate memory for local maps\n", process_rank);
 			exit(1);
 		}
 
-		for(int i = 0; i < 5; i++){
+		for(int i = 0; i < N_STEPS; i++){
 			/* 1) Scattering the map 
 			 * Not using MPI_Scatter because I want to specify the rows to send exactly. */
 			if (process_rank ==0){
-				printf("%d\t", i);
 				for (int i = 1; i < size_of_cluster; i++){
 					MPI_Send(map1_char + start_indices[i]*k, rows_per_processor[i]*k, MPI_UNSIGNED_CHAR, i, 0, MPI_COMM_WORLD);
 				}
 			} else {
 			MPI_Recv(sub_map, my_process_rows*k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 			} 
+			if (process_rank == 1){
+				printf("***********************************************************\n");
+				printf("my_process_rows for process %d is %d\n", process_rank, my_process_rows);
+				print_map(process_rank, k, my_process_rows, sub_map);
+				printf("***********************************************************\n");
+			}
 
 			/*Perform evolution in parallel*/
 			static_evolution(sub_map, sub_map_copy, k, my_process_rows);
-			if (process_rank == 0) {
+			if (process_rank == 1){
+				printf("***********************************************************\nAfter evolution:\n");
+				print_map(process_rank, k, my_process_rows, sub_map);
+				printf("***********************************************************\n");
+			}
 
+			if (process_rank == 0) {
 				for (int i = 1; i < size_of_cluster; i++) {
 			/* NOTE: receiving only inner rows, not the out-of-date boundaries used only for computation! */
 				    	MPI_Recv(map1_char + (start_indices[i]+1)*k, (rows_per_processor[i]-2)*k, MPI_UNSIGNED_CHAR, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+						printf("Process %d: receiving items %d to %d, from process %d, and start_indices[%d]= %d\n", process_rank, (start_indices[i]+1)*k, (start_indices[i]+1)*k + (rows_per_processor[i]-2)*k, i, i, start_indices[i]);
 				}
 			} else {
 			/* NOTE: sending only inner rows, not the out-of-date boundaries used only for computation! */
 				MPI_Send(sub_map +k, (my_process_rows-2)*k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD); 
 			}
 
-
 			if (process_rank == 0){
 				update_horizontal_edges(map1_char, k, nrows);
 				sprintf(snapshot_name, "images/snapshots/snapshot%d.pgm", i);
 		        	write_pgm_image(map1_char, maxval, k, nrows, snapshot_name);
+				printf("Step %d done successfully\n", i);
+		
+				printf("***********************************************************\n");
+				printf("After collecting:\n");
+				print_map(process_rank, k, nrows, map1_char);
+				printf("***********************************************************\n");
 		        }
     		}
-		
+		if (process_rank == 0){
 			#ifdef PROFILING
 		        double tend = CPU_TIME;
 		        double ex_time = tend-tstart;
 		        printf("\n\n Execution time is %f\n\n", ex_time);
 			#endif
+		}
+
+		printf("Process %d: sub_map = %p, sub_map_copy = %p\n", process_rank, sub_map, sub_map_copy);
 		    
-			MPI_Barrier(MPI_COMM_WORLD);
-			printf("Process %d: sub_map = %p, sub_map_copy = %p\n", process_rank, sub_map, sub_map_copy);		
-			free(sub_map);
-			free(sub_map_copy);
-			sub_map = NULL;
-			sub_map_copy = NULL;
+		MPI_Barrier(MPI_COMM_WORLD);
+
+		// Free sub_map and sub_map_copy in each process
+		free(sub_map);
+		free(sub_map_copy);
+		sub_map = NULL;
+		sub_map_copy = NULL;
 	}
 
-	if (process_rank == 0){
-		printf("DEBUG: map1 = %p, map2 = %p\n", map1, map2);
-    		free(map1);
+	// Free map1 and map2 only in process 0
+	if (process_rank == 0) {
+		printf("Process %d: map1 = %p, map2 = %p\n", process_rank, map1, map2);
+		free(map1);
 		free(map2);
 		map2 = NULL;
 		map1 = NULL;
-		printf("Process 0 freed map1 and map2\n");
 	}
 
 	MPI_Barrier(MPI_COMM_WORLD);
-	printf("Process %d, about to MPI_Finalize()\n", process_rank);
-	MPI_Barrier(MPI_COMM_WORLD);
 
-    	MPI_Finalize();    
-	printf("Finalized MPI\n");
-    	return 0;
+	// Finalize MPI only once for all processes
+	MPI_Finalize();
+	printf("Process %d finalized\n", process_rank);
+
+    return 0;
 }

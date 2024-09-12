@@ -9,13 +9,15 @@
 
 
 unsigned char *generate_blinker(unsigned char *restrict map, char fileName[], const int ncols, const int nrows) {
-    // Blinker
-    map[(int)(nrows)/2 * ncols + (int)(ncols/2)] = 255;
-    map[((int)(nrows)/2 +1) * ncols + (int)(ncols/2)] = 255;
-    map[((int)(nrows)/2 +2)* ncols + (int)(ncols/2)] = 255;
+    	// Blinker
+    	map[((int)(nrows-1)/2 -1)* ncols + (int)((ncols-1)/2)] = 255;
+    	map[((int)(nrows-1)/2) * ncols + (int)((ncols-1)/2)] = 255;
+    	map[((int)(nrows-1)/2 +1)* ncols + (int)((ncols-1)/2)] = 255;
 
-    write_pgm_image(map, maxval, ncols, nrows, fileName);
-    printf("PGM file created: %s\n", fileName);
+    	write_pgm_image(map, maxval, ncols, nrows, fileName);
+	printf("\n\n");    
+	printf("PGM file created: %s with dimensions %d x %d\n", fileName, nrows, ncols);
+
     return map;
 }
 
@@ -196,14 +198,14 @@ void edges_static_evolution(unsigned char *restrict current, unsigned char *rest
 
 void static_evolution(unsigned char *restrict current, unsigned char *restrict new, int ncols, int nrows){
 	int n_inner_rows = nrows -2;	
-    	memcpy(new, current, n_inner_rows*ncols*sizeof(unsigned char));
+    	memcpy(new, current, nrows*ncols*sizeof(unsigned char));
     /*Performs a single step of the update of the map*/
    
 	#if defined(_OPENMP)
 	#pragma omp parallel {    
 		int i = 0;
 		#pragma omp for collapse(2)
-		for(int row=1; row < n_inner_rows; row++)
+		for(int row=1; row <= n_inner_rows; row++)
 		    for(int col=1; col < ncols-1; col++)    
 		{
 		    i = row*size + col;
@@ -225,10 +227,13 @@ void static_evolution(unsigned char *restrict current, unsigned char *restrict n
 	    new[i] = update_cell(alive_counter);
 	}*/
 		/* Inner matrix loop */
-	for(int row=1; row < n_inner_rows; row++){
+	for(int row=1; row <= n_inner_rows; row++){
 		for(int col=1; col < ncols-1; col++){
 			i = row*ncols + col;
 			alive_counter = count_alive_neighbours(current, ncols, i);
+			if (alive_counter >= 2){
+				printf("cell in pos (%d,%d) has counter %d\n", row, col, alive_counter);
+			}
 			new[i] = update_cell(alive_counter);
 		}	
 
@@ -265,6 +270,5 @@ void static_evolution(unsigned char *restrict current, unsigned char *restrict n
 		new[i] = update_cell(right_border_counter);
 	}
 	#endif
-
-	memcpy(current, new, ncols*(n_inner_rows)+2*sizeof(unsigned char));
+	memcpy(current, new, ncols*nrows*sizeof(unsigned char));
 }

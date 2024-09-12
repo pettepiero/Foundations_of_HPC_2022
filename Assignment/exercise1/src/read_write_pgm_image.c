@@ -83,16 +83,22 @@ void read_pgm_image( void **image, int *maxval, int *xsize, int *ysize, const ch
  * image        : a pointer to the pointer that will contain the image
  * maxval       : a pointer to the int that will store the maximum intensity in the image
  * xsize, ysize : pointers to the x and y sizes
- * image_name   : the name of the file to be read
- *
- */
+ * image_name   : the name of the file to be read*/
 {
+
+	printf("DEBUG: read_pgm_image, argument image:\n"
+		"address of pointer that will contain the image: %p\n"
+		"address of the image: %p\n", image, *image);
+
   FILE* image_file; 
   image_file = fopen(image_name, "r"); 
-
+//	free(*image);
   *image = NULL;
   *xsize = *ysize = *maxval = 0;
-  
+ 
+	printf("DEBUG: now *image = %p \nimage = %p\n", *image, image);
+
+ 
   char    MagicN[2];
   char   *line = NULL;
   size_t  k, n = 0;
@@ -115,10 +121,14 @@ void read_pgm_image( void **image, int *maxval, int *xsize, int *ysize, const ch
     {
       *maxval = -1;         // this is the signal that there was an I/O error
 			    // while reading the image header
+	printf("Before free() 1\n");
       free( line );
+	printf("After free() 1\n");
       return;
     }
-  free( line );
+	printf("Before free() 2\n");
+	free( line );
+	printf("After free() 2\n");
   
   int color_depth = 1 + ( *maxval > 255 );
   unsigned int size = *xsize * *ysize * color_depth;
@@ -132,9 +142,11 @@ void read_pgm_image( void **image, int *maxval, int *xsize, int *ysize, const ch
       return;
     }
   
+	printf("DEBUG: after malloc, *image = %p \nimage = %p\n", *image, image);
   if ( fread( *image, 1, size, image_file) != size )
     {
-      free( image );
+      free( *image );
+      printf("Error while reading image data in read_write_pgm\n");
       image   = NULL;
       *maxval = -3;         // this is the signal that there was an i/o error
       *xsize  = 0;
