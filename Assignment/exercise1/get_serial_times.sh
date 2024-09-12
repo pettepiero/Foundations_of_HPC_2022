@@ -17,7 +17,7 @@ mkdir -p "$output_dir"
 output_file="$output_dir/${SLURM_JOB_ID}-serial.csv"
 
 echo "dim,nthreads,time" > "$output_file"
-for dim in 1000 1500 2000; do
+for dim in 100 500 1000 1500 2000; do
     echo "Using dimension $dim"
     echo "Running with a single thread"
     total_time=0
