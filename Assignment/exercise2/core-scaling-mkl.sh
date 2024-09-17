@@ -37,7 +37,7 @@ do
 			seconds=$(echo "$output" | tail -n 1 | awk '{print $2}')
 			gflops=$(echo "$output" | tail -n 1 | awk '{print $4}')
 		
-			echo "$j, $i, $seconds, $gflops,Single, $binding" >> "$output_file"
+			echo "$j,$i,$seconds,$gflops,Single,$binding" >> "$output_file"
 		
 			output=$(srun -n1 --cpus-per-task=$i ./gemm_mkl_double.x $matrix_size $matrix_size $matrix_size)
 		
@@ -45,7 +45,7 @@ do
 			seconds=$(echo "$output" | tail -n 1 | awk '{print $2}')
 			gflops=$(echo "$output" | tail -n 1 | awk '{print $4}')
 		
-			echo "$j, $i, $seconds, $gflops,Double, $binding" >> "$output_file"
+			echo "$j,$i,$seconds,$gflops,Double,$binding" >> "$output_file"
 		
 		done
 	done

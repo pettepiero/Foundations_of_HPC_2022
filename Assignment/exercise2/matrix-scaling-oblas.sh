@@ -41,7 +41,7 @@ do
 		        seconds=$(echo "$out" | tail -n 1 | awk '{print $2}')
 		        gflops=$(echo "$out" | tail -n 1 | awk '{print $4}')
 		
-			echo "$j, $i, $seconds, $gflops,Single,$binding" >> "$output_file"
+			echo "$j,$i,$seconds,$gflops,Single,$binding" >> "$output_file"
 		
 			out=$(srun -n1 --cpus-per-task=12 ./gemm_oblas_double.x $i $i $i)
 			
@@ -49,7 +49,7 @@ do
 		        seconds=$(echo "$out" | tail -n 1 | awk '{print $2}')
 		        gflops=$(echo "$out" | tail -n 1 | awk '{print $4}')
 		
-			echo "$j, $i, $seconds, $gflops,Double,$binding" >> "$output_file"
+			echo "$j,$i,$seconds,$gflops,Double,$binding" >> "$output_file"
 		
 		done
 	done
