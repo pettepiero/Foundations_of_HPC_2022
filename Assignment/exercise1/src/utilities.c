@@ -102,6 +102,8 @@ void set_up_map_variable(int action, int evolution, int k, void **map, int maxva
        	}
 
 	printf("DEBUG: dimensions of full map are %d x %d = %d elements\n", nrows, ncols, nrows*ncols);
+	printf("DEBUG: Addresses of full map are %p to %p\n", *map, &(*map)[nrows*ncols - 1]);
+	printf("i.e. %ld memory locations\n", &(*map)[nrows*ncols-1] - *map +1) ;
 
 	if(action == RUN){
         	printf("******************************\nRunning a playground\n******************************\n");
@@ -109,7 +111,9 @@ void set_up_map_variable(int action, int evolution, int k, void **map, int maxva
         	printf("Reading map from %s\n", file);
 		if(k != K_DFLT){
 			printf("Detected size != K_DFLT\n");
-			generate_blinker(*map, "images/blinker.pgm", ncols, nrows);
+			printf("Before calling generate_map:\n"
+				"&map = %p, map = %p, *map = %p\n", &map, map, *map);
+			generate_map(*map, file, 0.1, ncols, nrows, 0);
 		}
 		read_pgm_image(map, &maxval, &ncols, &nrows, file);
 
@@ -119,10 +123,11 @@ void set_up_map_variable(int action, int evolution, int k, void **map, int maxva
 		write_pgm_image(*map, maxval, ncols, nrows, "images/copy_of_image.pgm");
         	printf("Read map from %s\n", file);
 	}
-    else if(action == INIT){
-	free(*map);
-	*map = NULL;
-        *map = (unsigned char*)malloc(ncols*nrows*sizeof(unsigned char));
+	else if(action == INIT){
+        	printf("******************************\nInitializing a playground\n******************************\n");
+		free(*map);
+		*map = NULL;
+        	*map = (unsigned char*)malloc(ncols*nrows*sizeof(unsigned char));
         if (*map == NULL)
         {
             printf("Error: Could not allocate memory for map\n");
@@ -139,6 +144,7 @@ void set_up_map_variable(int action, int evolution, int k, void **map, int maxva
         #ifndef BLINKER
             generate_map(*map, "images/initial_map.pgm", 0.10, ncols, nrows, 0);
         #endif
+	printf("Generated map\n");
         #ifdef DEBUG
             printf("Printing first 100 elements after create_map()\n");
             for(int i=0; i < ncols && i < 100; i++)
@@ -224,7 +230,7 @@ void calculate_rows_per_processor(int nrows, int nprocessors, int *rows_per_proc
 			rows_per_processor[i]++;
 		}
 		if(i == nprocessors-1){
-			rows_per_processor[i] = nrows - start_indices[i];
+			rows_per_processor[i] = nrows -1 - start_indices[i];
 		}
 		start_row = start_indices[i] + rows_per_processor[i]-1;
 	}

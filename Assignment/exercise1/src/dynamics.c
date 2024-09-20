@@ -97,10 +97,12 @@ unsigned char *generate_map(unsigned char *restrict map, const char fileName[], 
                 		map[i*ncols +j] = 0;
             	}
     	}
+	printf("Passed the for loop\n");
 
 /* update boundary conditions (first and last rows)*/
 	update_horizontal_edges(map, ncols, nrows);
-
+	printf("Passed update_horizontal_edges\n");
+	printf("Now calling write_pgm_image(map=%p, maxval=%d, ncols=%d, nrows=%d, fileName=%s)\n", map, maxval, ncols, nrows, fileName);
     	write_pgm_image(map, maxval, ncols, nrows, fileName);
     	printf("PGM file created: %s\n", fileName);
     	return map;
@@ -202,14 +204,15 @@ void static_evolution(unsigned char *restrict current, unsigned char *restrict n
     /*Performs a single step of the update of the map*/
    
 	#if defined(_OPENMP)
-	#pragma omp parallel {    
+	#pragma omp parallel 
+	{    
 		int i = 0;
 		#pragma omp for collapse(2)
 		for(int row=1; row <= n_inner_rows; row++)
 		    for(int col=1; col < ncols-1; col++)    
 		{
-		    i = row*size + col;
-		    int alive_counter = count_alive_neighbours(current, size, i);
+		    i = row*ncols+ col;
+		    int alive_counter = count_alive_neighbours(current, ncols, i);
 		    new[i] = update_cell(alive_counter);
 		}
 	}

@@ -90,13 +90,8 @@ int main(int argc, char** argv)
 		set_up_map_variable(action, e, k, &map1, maxval, file);
 	        map1_char = (unsigned char*)map1;
 		
-		printf("***********************************************************\n");
-		print_map(process_rank, k, nrows, map1_char);
-		printf("***********************************************************\n");
-
 	        if (e == STATIC){
 	            static_set_up_other_map(map1, &map2, k);
-			printf("\nAfter static_set_up_other_map: map1 = %p, map2 = %p\n", map1, map2); 
 	        } else if (e == ORDERED){
 	            /*init_to_zero(map1_char, k); need to adjust to new matrix size
 	 * 		ncols*nrows */
@@ -127,6 +122,7 @@ int main(int argc, char** argv)
 		
 		printf("Process %d allocated sub_map at %p\n", process_rank, sub_map);
 		printf("Process %d: size of sub_map= %d\n", process_rank, my_process_rows*k);
+		printf("Process %d: addresses of sub_map=%p to %p\n", process_rank, sub_map, &sub_map[my_process_rows*k-1]);
 		if (sub_map == NULL || sub_map_copy == NULL){
 			printf("Process %d error: Could not allocate memory for local maps\n", process_rank);
 			exit(1);
@@ -136,33 +132,35 @@ int main(int argc, char** argv)
 			/* 1) Scattering the map 
 			 * Not using MPI_Scatter because I want to specify the rows to send exactly. */
 			if (process_rank ==0){
+				printf("Starting step %d\n", i);
 				for (int i = 1; i < size_of_cluster; i++){
 					MPI_Send(map1_char + start_indices[i]*k, rows_per_processor[i]*k, MPI_UNSIGNED_CHAR, i, 0, MPI_COMM_WORLD);
 				}
+				memcpy(sub_map, map1_char, k*my_process_rows);
 			} else {
-			MPI_Recv(sub_map, my_process_rows*k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				MPI_Recv(sub_map, my_process_rows*k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 			} 
-			if (process_rank == 1){
-				printf("***********************************************************\n");
-				printf("my_process_rows for process %d is %d\n", process_rank, my_process_rows);
-				print_map(process_rank, k, my_process_rows, sub_map);
-				printf("***********************************************************\n");
-			}
 
 			/*Perform evolution in parallel*/
-			static_evolution(sub_map, sub_map_copy, k, my_process_rows);
-			if (process_rank == 1){
-				printf("***********************************************************\nAfter evolution:\n");
-				print_map(process_rank, k, my_process_rows, sub_map);
-				printf("***********************************************************\n");
+			if (process_rank == 0){
+				printf("\n\nAlso process 0 is calling static_evolution\n");
+				printf("process 0 will call static_evolution on sub_map=%p and sub_map_copy=%p"
+					"\n for %d columns and %d rows\n", sub_map, sub_map_copy, k, my_process_rows);
+				printf("i.e. from address %p to address %p\n\n", sub_map, sub_map + k*my_process_rows);
 			}
 
+			static_evolution(sub_map, sub_map_copy, k, my_process_rows);
+
 			if (process_rank == 0) {
-				for (int i = 1; i < size_of_cluster; i++) {
+				for (int j = 1; j < size_of_cluster; j++) {
 			/* NOTE: receiving only inner rows, not the out-of-date boundaries used only for computation! */
-				    	MPI_Recv(map1_char + (start_indices[i]+1)*k, (rows_per_processor[i]-2)*k, MPI_UNSIGNED_CHAR, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-						printf("Process %d: receiving items %d to %d, from process %d, and start_indices[%d]= %d\n", process_rank, (start_indices[i]+1)*k, (start_indices[i]+1)*k + (rows_per_processor[i]-2)*k, i, i, start_indices[i]);
+				    	MPI_Recv(map1_char + (start_indices[j]+1)*k, (rows_per_processor[j]-2)*k, MPI_UNSIGNED_CHAR, j, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+					printf("Process %d, step %d: receiving from process %d and writing from address %p\n"
+						"i.e. %d posisions after map1_char = %p (start_indices=%d)\n", process_rank, i, j, map1_char + (start_indices[j]+1)*k, (start_indices[j]+1)*k, map1_char, start_indices[j]);
 				}
+				printf("Writing process 0 sub_map to map1_char\n"
+					"i.e from address %p to address %p\n", map1_char+k, map1_char+k + k*my_process_rows);
+				memcpy(map1_char +k, sub_map, k*my_process_rows);
 			} else {
 			/* NOTE: sending only inner rows, not the out-of-date boundaries used only for computation! */
 				MPI_Send(sub_map +k, (my_process_rows-2)*k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD); 
@@ -172,12 +170,6 @@ int main(int argc, char** argv)
 				update_horizontal_edges(map1_char, k, nrows);
 				sprintf(snapshot_name, "images/snapshots/snapshot%d.pgm", i);
 		        	write_pgm_image(map1_char, maxval, k, nrows, snapshot_name);
-				printf("Step %d done successfully\n", i);
-		
-				printf("***********************************************************\n");
-				printf("After collecting:\n");
-				print_map(process_rank, k, nrows, map1_char);
-				printf("***********************************************************\n");
 		        }
     		}
 		if (process_rank == 0){
@@ -188,7 +180,6 @@ int main(int argc, char** argv)
 			#endif
 		}
 
-		printf("Process %d: sub_map = %p, sub_map_copy = %p\n", process_rank, sub_map, sub_map_copy);
 		    
 		MPI_Barrier(MPI_COMM_WORLD);
 

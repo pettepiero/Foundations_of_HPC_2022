@@ -4,13 +4,14 @@
 #include "read_write_pgm_image.h"
 #include <stdlib.h>
 
-int k = K_DFLT +2;
-int maxval = 255;
+int nrows = K_DFLT +2;
+int ncols = K_DFLT; 
+int maxval = 255; 
 unsigned char *map = NULL;
 
 void setUp()
 {
-    map = (unsigned char*)calloc(k*k, sizeof(unsigned char));
+    map = (unsigned char*)calloc(K_DFLT*k, sizeof(unsigned char));
 }
 
 void tearDown()
@@ -19,13 +20,12 @@ void tearDown()
     //delete pgm files
 }
 
-void test_update_edges()
+void test_update_horizontal_edges()
 {
-    
-    generate_map(map, "./pgm/test.pgm", 0.5, k, 0);
+    generate_map(map, "./pgm/test.pgm", 0.5, K_DFLT, k, 0);
 
     // update edges
-    update_edges(map, k);
+    update_horizontal_edges(map, K_DFLT, k);
     
     // Get outer edges
     int left[k-2], right[k-2], top[k-2], bottom[k-2];
