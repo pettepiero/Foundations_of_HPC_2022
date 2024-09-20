@@ -11,7 +11,7 @@ unsigned char *map = NULL;
 
 void setUp()
 {
-    map = (unsigned char*)calloc(K_DFLT*k, sizeof(unsigned char));
+    map = (unsigned char*)calloc(nrows*ncols, sizeof(unsigned char));
 }
 
 void tearDown()
@@ -22,43 +22,28 @@ void tearDown()
 
 void test_update_horizontal_edges()
 {
-    generate_map(map, "./pgm/test.pgm", 0.5, K_DFLT, k, 0);
+	generate_map(map, "./pgm/test.pgm", 0.5, ncols, nrows, 0);
+	
+	// update edges
+	update_horizontal_edges(map, ncols, nrows);
+	    
+	// Get outer edges
+	int top[nrows], bottom[nrows];
+	for (int i=0; i<ncols; i++){
+        	top[i] = map[i];
+        	bottom[i] = map[i + ncols*(nrows-1)];
+	}
 
-    // update edges
-    update_horizontal_edges(map, K_DFLT, k);
-    
-    // Get outer edges
-    int left[k-2], right[k-2], top[k-2], bottom[k-2];
-    for (int i=1; i<k-1; i++){
-        left[i-1] = map[i*k];
-        right[i-1] = map[i*k + k-1];
-        top[i-1] = map[i];
-        bottom[i-1] = map[i + k*(k-1)];
-    }
-    // Get inner edges
-    int left_inner[k-2], right_inner[k-2], top_inner[k-2], bottom_inner[k-2];
-    for (int i=1; i<k-1; i++){
-        left_inner[i-1] = map[i*k + 1];
-        right_inner[i-1] = map[i*k + k-2];
-        top_inner[i-1] = map[i+k];
-        bottom_inner[i-1] = map[i+k*(k-2)];
-    }
-    // Get angles
-    int top_left = map[0], top_right = map[k-1], bottom_left = map[k*(k-1)], bottom_right = map[k*k-1];
-    // Get inner angles
-    int top_left_inner = map[k+1], top_right_inner = map[2*k-2],
-    bottom_left_inner = map[k*(k-2)+1], bottom_right_inner = map[k*(k-2)+k-2];
-    
-    // Perform test
-    TEST_ASSERT_EQUAL_INT_ARRAY_MESSAGE(left, right_inner, k-2, "This was test 1\n");
-    TEST_ASSERT_EQUAL_INT_ARRAY_MESSAGE(right, left_inner, k-2, "This was test 2\n");
-    TEST_ASSERT_EQUAL_INT_ARRAY_MESSAGE(top, bottom_inner, k-2, "This was test 3\n");
-    TEST_ASSERT_EQUAL_INT_ARRAY_MESSAGE(bottom, top_inner, k-2, "This was test 4\n");
-
-    TEST_ASSERT_EQUAL_INT_MESSAGE(top_left, bottom_right_inner, "This was test 5\n");
-    TEST_ASSERT_EQUAL_INT_MESSAGE(top_right, bottom_left_inner, "This was test 6\n");
-    TEST_ASSERT_EQUAL_INT_MESSAGE(bottom_left, top_right_inner, "This was test 7\n");
-    TEST_ASSERT_EQUAL_INT_MESSAGE(bottom_right, top_left_inner, "This was test 8\n");
+   	 // Get inner edges
+   	 int top_inner[ncols], bottom_inner[ncols];
+   	 for (int i=0; i<ncols; i++){	
+   	     	top_inner[i] = map[i+ncols];
+   	     	bottom_inner[i] = map[i+(nrows-2)*ncols];
+   	 }
+   	 
+   	 // Perform test
+   	 TEST_ASSERT_EQUAL_INT_ARRAY_MESSAGE(top, bottom_inner, ncols, "Top vs bottom inner\n");
+   	 TEST_ASSERT_EQUAL_INT_ARRAY_MESSAGE(bottom, top_inner, ncols, "Bottom vs top inner\n");
 }
 
 void test_count_alive_neighbours()
@@ -66,7 +51,7 @@ void test_count_alive_neighbours()
     free(map);
     // Generating known map
     map = (unsigned char*)calloc(10*10, sizeof(unsigned char));
-    generate_map(map, "./pgm/seed10test.pgm", 0.5, 10, 10);
+    generate_map(map, "./pgm/seed10test.pgm", 0.5, 10, 10, 10);
     /* Generated map:
     255     0       0       255     255     255     255     0       255     0
     0       255     0       0       0       255     255     255     0       255
@@ -80,7 +65,7 @@ void test_count_alive_neighbours()
     0       255     0       0       0       255     255     255     0       255
     */
 
-    //print_map_to_file(map, 10, "./pgm/mapfile.txt");
+    print_map_to_file(map, 10, 10, "./pgm/mapfile.txt");
 
     // Get number of alive neighbours for known cells
     TEST_ASSERT_EQUAL_INT_MESSAGE(2, count_alive_neighbours(map, 10, 11), "This was test 1\n");
@@ -100,12 +85,13 @@ void test_update_cell()
     TEST_ASSERT_EQUAL_CHAR_MESSAGE(255, update_cell(2.5), "This was test 7 \n");
     TEST_ASSERT_EQUAL_CHAR_MESSAGE(0, update_cell(-13), "This was test 8 \n");
 }
+//static_evolution(unsigned char *restrict current, unsigned char *restrict new, int ncols, int n_inner_rows);
 
-void test_update_map()
+void test_static_evolution()
 {
     //This test is done checking step from known configuration
     map = (unsigned char*)calloc(10*10, sizeof(unsigned char));
-    generate_map(map, "./pgm/seed10test.pgm", 0.5, 10, 10);
+    generate_map(map, "./pgm/seed10test.pgm", 0.5, 10, 10, 10);
     /* Generated map:
     255     0       0       255     255     255     255     0       255     0
     0       255     0       0       0       255     255     255     0       255
@@ -120,8 +106,8 @@ void test_update_map()
     */
     unsigned char* map2 = (unsigned char*)calloc(10*10, sizeof(unsigned char));
     unsigned char* map3 = (unsigned char*)calloc(10*10, sizeof(unsigned char));
-
-    update_map(map, map2, 10);
+    
+    static_evolution(map, map2, 10, 8);
     //Known solution
     /*
     0       255     0       255     0       0       0       0       0       255
@@ -156,11 +142,10 @@ int main(void)
 {
     UNITY_BEGIN();
 
-    RUN_TEST(test_update_edges);
-    RUN_TEST(test_update_edges);
+    RUN_TEST(test_update_horizontal_edges);
     RUN_TEST(test_count_alive_neighbours);
     RUN_TEST(test_update_cell);
-    RUN_TEST(test_update_map);
+    RUN_TEST(test_static_evolution);
 
     UNITY_END();
 

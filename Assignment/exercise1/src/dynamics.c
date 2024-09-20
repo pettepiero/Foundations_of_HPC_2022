@@ -54,7 +54,7 @@ void update_horizontal_edges(unsigned char *restrict map, const int ncols, const
 }
 
 
-void print_map_to_file(unsigned char *restrict map, const int k, const char fileName[])
+void print_map_to_file(unsigned char *restrict map, const int ncols, const int nrows, const char fileName[])
 {
     FILE *f = fopen(fileName, "w");
     if (f == NULL)
@@ -65,9 +65,9 @@ void print_map_to_file(unsigned char *restrict map, const int k, const char file
     fclose(f);
 
     f = fopen(fileName, "a");
-    for (int i=0; i<k; i++){
-        for(int j = 0; j <k; j++){
-            fprintf(f, "%d\t", map[i*k +j]);
+    for (int i=0; i<nrows; i++){
+        for(int j = 0; j <ncols; j++){
+            fprintf(f, "%d\t", map[i*ncols+j]);
         }
         fprintf(f, "\n");
     }
@@ -97,12 +97,9 @@ unsigned char *generate_map(unsigned char *restrict map, const char fileName[], 
                 		map[i*ncols +j] = 0;
             	}
     	}
-	printf("Passed the for loop\n");
 
 /* update boundary conditions (first and last rows)*/
 	update_horizontal_edges(map, ncols, nrows);
-	printf("Passed update_horizontal_edges\n");
-	printf("Now calling write_pgm_image(map=%p, maxval=%d, ncols=%d, nrows=%d, fileName=%s)\n", map, maxval, ncols, nrows, fileName);
     	write_pgm_image(map, maxval, ncols, nrows, fileName);
     	printf("PGM file created: %s\n", fileName);
     	return map;
@@ -234,9 +231,6 @@ void static_evolution(unsigned char *restrict current, unsigned char *restrict n
 		for(int col=1; col < ncols-1; col++){
 			i = row*ncols + col;
 			alive_counter = count_alive_neighbours(current, ncols, i);
-			if (alive_counter >= 2){
-				printf("cell in pos (%d,%d) has counter %d\n", row, col, alive_counter);
-			}
 			new[i] = update_cell(alive_counter);
 		}	
 
