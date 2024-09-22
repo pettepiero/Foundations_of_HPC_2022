@@ -15,7 +15,7 @@ int main( argc, argv )
      int argc;
      char **argv;
 {
-  float *message [NMSG];          /* pointers to messages                 */
+  float *message [NMSG];          /* array of pointers to messages        */
   float *buffer;                  /* buffer required by buffered send     */
   int rank,                       /* rank of task in communicator         */
       count,                      /* number of elements in message        */

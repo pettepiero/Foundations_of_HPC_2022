@@ -6,7 +6,7 @@
 
 //#define DEBUG
 //#define BLINKER
-//#define PROFILING
+#define PROFILING
 
 #define INIT 1
 #define RUN  2
@@ -18,13 +18,13 @@
 #define N_STEPS 100
 
 
-extern int action;
-extern int k;
-extern int e;
-extern int n;
-extern int s;
+extern int 	action;
+extern int 	k;
+extern int 	e;
+extern int 	n;
+extern int 	s;
 extern char *fname;
-extern int maxval;
+extern int 	maxval;
 
 
 #if defined(_OPENMP)

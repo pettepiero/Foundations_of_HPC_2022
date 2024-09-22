@@ -1,0 +1,15 @@
+salloc -n1 -N1 -p EPYC -A dssc --time=01:00:00
+salloc -n2 -N2 -p EPYC -A dssc --time=01:00:00
+
+mpirun -np 2 valgrind --leak-check=full --track-origins=yes build/gol.x -i &> valgrind_output.txt
+  885  vim valgrind_output.txt
+
+
+
+
+notes on allocation sizes
+
+inside static:
+	sub_map -> rows_to_receive*k bytes (addresses from 0 to rows_to_receive*k -1)
+	accessing sub_map from 0 to (rows_to_receive-1)*k +k-1
+
