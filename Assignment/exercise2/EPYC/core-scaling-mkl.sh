@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH -A dssc
 #SBATCH --job-name=MKL-core-scaling
-#SBATCH --partition=THIN
+#SBATCH --partition=EPYC
 #SBATCH --time=02:00:0
-#SBATCH --cpus-per-task=24
+#SBATCH --cpus-per-task=64
 #SBATCH --ntasks-per-node=1 
 #SBATCH --mem=200gb
 #SBATCH --nodes=1
@@ -11,14 +11,18 @@
 #SBATCH --output=./outputs/output_files/slurm-%j.txt
 
 echo "MKL core scaling"
+echo "Expecting already compiled executables for EPYC architecture"
 echo "********************************"
+
 export LD_LIBRARY_PATH=/u/dssc/ppette00/intel/oneapi/mkl/2024.2/lib/intel64:$LD_LIBRARY_PATH
 export OMP_PLACES=threads
-output_file="./outputs/core_scaling/mkl-core-scaling-$SLURM_JOB_ID.csv"
+
+output_file="./outputs/core_scaling/mkl-core-scaling-$SLURM_JOB_ID-EPYC.csv"
 matrix_size=10000
 
 # Add header
 echo "Measurement,Number of CPUs,Seconds,GFLOPS,Precision,Bind(threads)"> "$output_file"
+
 for binding in 'close' 'spread'
 do
 	export OMP_PROC_BIND=$binding
@@ -26,7 +30,7 @@ do
 	do
 		echo "Measurement $j"
 	
-		for ((i=1;i<=24;i+=1))
+		for ((i=1;i<=64;i*=2))
 		do
 		
 			echo "Iteration $i"
