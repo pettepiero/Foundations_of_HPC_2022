@@ -67,7 +67,7 @@ void print_map_to_file(unsigned char *restrict map, const int ncols, const int n
     f = fopen(fileName, "a");
     for (int i=0; i<nrows; i++){
         for(int j = 0; j <ncols; j++){
-            fprintf(f, "%d\t", map[i*ncols+j]);
+            fprintf(f, "%4d", map[i*ncols+j]);
         }
         fprintf(f, "\n");
     }
@@ -119,7 +119,7 @@ void get_active_zones()
 int count_alive_neighbours(unsigned char *restrict map, const int ncols, const int index)
 {
 	// NOTE: indexes that are passed should not be on the edges!
-	if (index > ncols){
+	if (index >= ncols){
 		int count = 0;
 		int neighbours[] = {index-1, index+1, index-ncols, index+ncols, index-ncols-1, index-ncols+1, index+ncols-1, index+ncols+1};
 
@@ -203,14 +203,47 @@ void static_evolution(unsigned char *restrict current, unsigned char *restrict n
 	#if defined(_OPENMP)
 	#pragma omp parallel 
 	{    
+		int left_border_counter = 0;
+		int right_border_counter = 0;
 		int i = 0;
-		#pragma omp for collapse(2)
-		for(int row=1; row <= n_inner_rows; row++)
-		    for(int col=1; col < ncols-1; col++)    
-		{
-		    i = row*ncols+ col;
-		    int alive_counter = count_alive_neighbours(current, ncols, i);
-		    new[i] = update_cell(alive_counter);
+		#pragma omp for 
+		for(int row=1; row <= n_inner_rows; row++){
+			for(int col=1; col < ncols-1; col++){
+				i = row*ncols+ col;
+				int alive_counter = count_alive_neighbours(current, ncols, i);
+				new[i] = update_cell(alive_counter);
+			}
+			/*Count alive neighbours for left and right
+ * 			 border elements */
+			i = row*ncols;
+			left_border_counter = 0;
+			right_border_counter = 0;
+			/* left neighbours of cell on left edge */
+			left_border_counter += current[i-1];	
+			left_border_counter += current[i+ncols-1];
+			left_border_counter += current[i+2*ncols-1];
+			/* top and bottom neighbours of cell on left edge */	
+			left_border_counter += current[i-ncols];
+			left_border_counter += current[i+ncols];
+			/* right neighbours of cell on left edge */
+			left_border_counter += current[i-ncols+1];
+			left_border_counter += current[i+1];
+			left_border_counter += current[i+ncols+1];
+			new[i] = update_cell(left_border_counter/255);
+
+			i += ncols -1;
+			/* right neighbours of cell on right edge */
+			right_border_counter += current[i-2*ncols+1];	
+			right_border_counter += current[i-ncols+1];	
+			right_border_counter += current[i+1];	
+			/* top and bottom neighbours of cell on right edge */
+			right_border_counter += current[i-ncols];	
+			right_border_counter += current[i+ncols];	
+			/* left neighbouts of cell on right edge */
+			right_border_counter += current[i-ncols-1];	
+			right_border_counter += current[i-1];
+			right_border_counter += current[i+ncols-1];
+			new[i] = update_cell(right_border_counter/255);
 		}
 	}
 	#else
@@ -236,6 +269,7 @@ void static_evolution(unsigned char *restrict current, unsigned char *restrict n
 
 		/*Count alive neighbours for left and right
  * 		 border elements */
+		printf("Border element %d=(%d, %d)\n", i, row, col);
 		i = row*ncols;
 		left_border_counter = 0;
 		right_border_counter = 0;

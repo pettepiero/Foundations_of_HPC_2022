@@ -101,10 +101,6 @@ void set_up_map_variable(int action, int evolution, int k, void **map, int maxva
             	exit(1);
        	}
 
-	printf("DEBUG: dimensions of full map are %d x %d = %d elements\n", nrows, ncols, nrows*ncols);
-	printf("DEBUG: Addresses of full map are %p to %p\n", *map, &(*map)[nrows*ncols - 1]);
-	printf("i.e. %ld memory locations\n", &(*map)[nrows*ncols-1] - *map +1) ;
-
 	if(action == RUN){
         	printf("******************************\nRunning a playground\n******************************\n");
 		printf("NOTE: if k != K_DFLT, then new blinker of appropriate size will be created\n");
@@ -128,37 +124,25 @@ void set_up_map_variable(int action, int evolution, int k, void **map, int maxva
 		free(*map);
 		*map = NULL;
         	*map = (unsigned char*)malloc(ncols*nrows*sizeof(unsigned char));
-        if (*map == NULL)
-        {
-            printf("Error: Could not allocate memory for map\n");
-            exit(1);
-        }
-	
-	#ifdef BLINKER
-            #ifdef DEBUG
-                printf("Generating blinker\n");
-            #endif
-            generate_blinker(map, "images/blinker.pgm", ncols, nrows);
-        #endif
+        	if (*map == NULL){
+        	    printf("Error: Could not allocate memory for map\n");
+        	    exit(1);
+        	}
+		
+		#ifdef BLINKER
+        	    #ifdef DEBUG
+        	        printf("Generating blinker\n");
+        	    #endif
+        	    generate_blinker(map, "images/blinker.pgm", ncols, nrows);
+        	#endif
 
-        #ifndef BLINKER
-            generate_map(*map, "images/initial_map.pgm", 0.10, ncols, nrows, 0);
-        #endif
-	printf("Generated map\n");
-        #ifdef DEBUG
-            printf("Printing first 100 elements after create_map()\n");
-            for(int i=0; i < ncols && i < 100; i++)
-            {
-                printf("%d ", ((unsigned char *)map)[i]);
-            }
-            printf("\n");
-        #endif
-
-    } else {
-        printf("Error, no action specified in set_up_map_variable\n");
-        exit(1);
-    }
-	printf("Returning from set_up_map_variable\n");
+        	#ifndef BLINKER
+			generate_map(*map, "images/initial_map.pgm", 0.10, ncols, nrows, 0);
+        	#endif
+    	} else {
+	        printf("Error, no action specified in set_up_map_variable\n");
+	        exit(1);
+	}
 }
 /*
 void static_set_up_other_map(unsigned char *map1, unsigned char *map2, int size){
@@ -196,12 +180,12 @@ void static_set_up_other_map(unsigned char *map1, void **map2, int size){       
 	printf("\nAfter memcpy: map1 = %p, *map2 = %p\n", map1, *map2);                                                                             
 }                          
 
-void print_map(int process_rank, int k, int rows_to_receive, unsigned char *map){
+void print_map(int process_rank, int ncols, int rows_to_receive, unsigned char *map){
 
 		printf("Process %d:\n", process_rank);
 		for (int i=0; i<rows_to_receive; i++){
-			for (int j=0; j<k; j++)
-				printf("%4d", map[i*k+j]);
+			for (int j=0; j<ncols; j++)
+				printf("%4d", map[i*ncols+j]);
 			printf("\n");
 		}	
 }
