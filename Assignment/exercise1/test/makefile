@@ -31,9 +31,9 @@ BUILD_PATHS = $(PATHB) $(PATHD) $(PATHO) $(PATHR)
 SRCT = $(wildcard $(PATHT)*.c)
 
 COMPILE=gcc -c
-LINK=gcc
+LINK=gcc -fopenmp
 DEPEND=gcc -MM -MG -MF
-CFLAGS=-I. -I$(PATHU) -I$(PATHS) -I$(PATHI) -DTEST
+CFLAGS=-I. -I$(PATHU) -I$(PATHS) -I$(PATHI) -DTEST -fopenmp
 
 RESULTS = $(patsubst $(PATHT)Test%.c,$(PATHR)Test%.txt,$(SRCT) )
 
@@ -50,10 +50,13 @@ test: $(BUILD_PATHS) $(RESULTS)
 	@echo "$(PASSED)"
 	@echo "\nDONE"
 
+$(PATHO)utilities.o:: $(PATHS)utilities.c
+	$(COMPILE) $(CFLAGS) $< -o $@
+
 $(PATHR)%.txt: $(PATHB)%.$(TARGET_EXTENSION)
 	-./$< > $@ 2>&1
 
-$(PATHB)Test%.$(TARGET_EXTENSION): $(PATHO)Test%.o $(PATHO)%.o $(PATHO)unity.o $(PATHO)/read_write_pgm_image.o #$(PATHD)Test%.d
+$(PATHB)Test%.$(TARGET_EXTENSION): $(PATHO)Test%.o $(PATHO)%.o $(PATHO)unity.o $(PATHO)read_write_pgm_image.o $(PATHO)utilities.o  #$(PATHD)Test%.d
 	$(LINK) -o $@ $^
 
 $(PATHO)%.o:: $(PATHT)%.c

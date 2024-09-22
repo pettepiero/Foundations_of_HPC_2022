@@ -1,42 +1,26 @@
-CC = gcc
-CFLAGS = -pg -Wall -fstrict-aliasing -Wstrict-aliasing
-PROFILEFLAGS = -DPROFILING
-OPENMPFLAGS = -fopenmp
-DEBUGFLAGS = -DDEBUG
+CC = mpicc
+CFLAGS = -Wall -fstrict-aliasing -Wstrict-aliasing -g -fopenmp -DUSE_MPI
 SRCDIR = src
 BINDIR = build
 INCDIR = include
 OBJDIR = $(BINDIR)/objs
-
 SRCS = $(wildcard $(SRCDIR)/*.c)
 OBJS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
 EXEC = $(BINDIR)/gol.x
 
-.PHONY: clean debug profile openmp
+# Default target
+default: $(EXEC)
 
-$(OBJDIR):
-	mkdir -p $(OBJDIR)
+# Rule to compile object files with MPI and OpenMP support
+$(OBJDIR)/%.o: $(SRCDIR)/%.c
+	$(CC) $(CFLAGS) -I$(INCDIR) -c $< -o $@
 
-$(OBJDIR)/mpi:
-	mkdir -p $(OBJDIR)/mpi
-
-$(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
-	$(CC) $(CFLAGS) $(PROFILEFLAGS) -I$(INCDIR) -c $< -o $@
-
+# Rule to link the executable
 $(EXEC): $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $(EXEC)
 
-profile: CFLAGS += $(PROFILEFLAGS)
-profile: $(EXEC)
-
-openmp: clean
-openmp: CFLAGS += $(OPENMPFLAGS) $(PROFILEFLAGS)
-openmp: OPENMP_OBJS = $(filter $(OBJDIR)/gol.o $(OBJDIR)/read_write_pgm_image.o $(OBJDIR)/dynamics.o,$(OBJS))
-openmp: $(OPENMP_OBJS)
-	$(CC) $(CFLAGS) $(OPENMP_OBJS) -o $(EXEC)
-
+# Clean target
 clean:
 	rm -f $(OBJDIR)/*.o $(EXEC)
 
-# Default target without _OPENMP
-default: $(EXEC)
+.PHONY: clean default
