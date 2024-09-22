@@ -21,7 +21,7 @@ export OMP_PLACES=threads
 output_file="./outputs/matrix_scaling/oblas-matrx-scaling-$SLURM_JOB_ID.csv"
 
 # Add header
-echo "Measurement,Matrix Size (n),Seconds,GFLOPS,Precision,Bind"> "$output_file"
+echo "Measurement,Matrix Size (n),Seconds,GFLOPS,Precision,Bind(threads)"> "$output_file"
 
 for binding in 'close' 'spread'
 do

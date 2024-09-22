@@ -6,7 +6,7 @@
 
 //#define DEBUG
 //#define BLINKER
-//#define PROFILING
+#define PROFILING
 
 #define INIT 1
 #define RUN  2

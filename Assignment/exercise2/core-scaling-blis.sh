@@ -16,13 +16,13 @@ echo "********************************"
 echo "Loading modules"
 
 export LD_LIBRARY_PATH=/u/dssc/ppette00/myblis/lib:$LD_LIBRARY_PATH
-export OMP_PLACES=cores
+export OMP_PLACES=threads
 
 output_file="./outputs/core_scaling/blis-core-scaling-$SLURM_JOB_ID.csv"
 matrix_size=10000
 
 # Add header
-echo "Measurement,Number of CPUs,Seconds,GFLOPS,Precision,Bind"> "$output_file"
+echo "Measurement,Number of CPUs,Seconds,GFLOPS,Precision,Bind(threads)"> "$output_file"
 
 for binding in 'close' 'spread'
 do

@@ -17,12 +17,12 @@ echo "Loading modules"
 module load openBLAS/0.3.26-omp
 
 OPENBLASROOT=${OPENBLAS_ROOT}
-export OMP_PLACES=cores
+export OMP_PLACES=threads
 
 output_file="./outputs/core_scaling/oblas-core-scaling-$SLURM_JOB_ID.csv"
 matrix_size=10000
 # Add header
-echo "Measurement,Number of CPUs,Seconds,GFLOPS,Precision,Bind"> "$output_file"
+echo "Measurement,Number of CPUs,Seconds,GFLOPS,Precision,Bind(threads)"> "$output_file"
 
 for binding in 'close' 'spread'
 do
