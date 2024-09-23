@@ -10,6 +10,8 @@ Functions that make gol.c file cleaner and improve its readability */
 #include "constants.h"
 #include "dynamics.h"
 #include <omp.h>
+#include <dirent.h>
+#include <unistd.h>
 
 void command_line_parser(int *action, int *k, int *e, char **fname, int *n, int *s, int argc, char **argv){
     *action = 0;
@@ -60,9 +62,9 @@ void command_line_parser(int *action, int *k, int *e, char **fname, int *n, int 
 
         case 'n':
         	*n = atoi(optarg);
-        	if ((*n <= 0) || (*n >= 500))
+        	if (*n <= 0)
         	{
-        	    printf("Error: number of steps n must be greater than 0 and less than 500\n");
+        	    printf("Error: number of steps n must be greater than 0 \n");
         	    exit(1);
         	}
         break;
@@ -170,23 +172,6 @@ void set_up_map_variable(int action, int evolution, int k, void **map, int maxva
 	        exit(1);
 	}
 }
-/*
-void static_set_up_other_map(unsigned char *map1, unsigned char *map2, int size){
-      Allocates memory for map2 and copies map1 into it.
-        Parameters:
-            map1: unsigned char*, pointer to the first map
-            map2: unsigned char*, pointer to the second map
-	*   size: int, side of square matrix
-/
-    	map2 = (unsigned char*)malloc(size*size*sizeof(unsigned char));
-    	if (map2 == NULL)
-    	{
-        	printf("Error: Could not allocate memory for map2\n");
-        	exit(1);
-    	}
-    	memcpy(map2, map1, size*size*sizeof(unsigned char));
-	printf("\nAfter memcpy: map1 = %p, map2 = %p\n", map1, map2); 
-}*/
 
 void static_set_up_other_map(unsigned char *map1, void **map2, int size){                                                                     /*  Allocates memory for map2 and copies map1 into it.
         Parameters:
@@ -211,16 +196,6 @@ void print_map(int process_rank, int ncols, int rows_to_receive, unsigned char *
 			printf("\n");
 		}	
 }
-/* i think this is useless
-int nrows_given_process(int process_rank, int n_lines_per_process, int max_nrows){
-
-	int start_row = process_rank * (n_lines_per_process);
-	int end_row = start_row + n_lines_per_process- 1;
-
-	if (end_row >= max_nrows)
-		end_row = max_nrows- 1; // Limit end_row to the matrix size
-	return end_row - start_row + 1;
-} */
 
 void calculate_rows_per_processor(int nrows, int nprocessors, int *rows_per_processor, int *start_indices){
 	int ideal_nrows = nrows/nprocessors;
@@ -241,3 +216,32 @@ void calculate_rows_per_processor(int nrows, int nprocessors, int *rows_per_proc
 		start_row = start_indices[i] + rows_per_processor[i]-1;
 	}
 }
+
+
+void delete_pgm_files(const char *folder_path) {
+    DIR *dir;
+    struct dirent *entry;
+
+    // Open the directory
+    if ((dir = opendir(folder_path)) == NULL) {
+        perror("opendir() error");
+        return;
+    }
+
+    // Iterate over the directory entries
+    while ((entry = readdir(dir)) != NULL) {
+        // Check if the file ends with .pgm
+        if (strstr(entry->d_name, ".pgm") != NULL) {
+            // Create the full path to the file
+            char filepath[1024];
+            snprintf(filepath, sizeof(filepath), "%s/%s", folder_path, entry->d_name);
+
+            if (remove(filepath) != 0) {
+                perror("remove() error");
+            }
+        }
+    }
+
+    closedir(dir);
+}
+

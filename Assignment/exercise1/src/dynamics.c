@@ -149,17 +149,32 @@ char update_cell(const int alive_neighbours)
         return 255;
 }
 
-void ordered_evolution(unsigned char *restrict map, int ncols, int n_rows)
+
+
+void ordered_evolution(unsigned char *restrict map, int ncols, int nrows)
 {
-    for (int row = 1; row < n_rows-1; row++)
-    {
-        for (int col = 1; col < ncols-1; col++)
-        {
-            int i = row*ncols+ col;
-            int alive_counter = count_alive_neighbours(map, ncols, i);
-            map[i] = update_cell(alive_counter);
-        }
-    }
+	#if defined(_OPENMP)
+	#pragma omp parallel for
+    	for (int row = 1; row < nrows-1; row++)
+    	{
+    	    for (int col = 0; col < ncols; col++)
+    	    {
+    	        int i = row*ncols+ col;
+    	        int alive_counter = count_alive_neighbours(map, ncols, i);
+    	        map[i] = update_cell(alive_counter);
+    	    }
+    	}
+	#else
+    	for (int row = 1; row < nrows-1; row++)
+    	{
+    	    for (int col = 0; col < ncols; col++)
+    	    {
+    	        int i = row*ncols+ col;
+    	        int alive_counter = count_alive_neighbours(map, ncols, i);
+    	        map[i] = update_cell(alive_counter);
+    	    }
+    	}
+	#endif
 }
 
 

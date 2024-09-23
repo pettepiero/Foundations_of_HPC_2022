@@ -9,4 +9,5 @@ void 	static_set_up_other_map(unsigned char *map1, void **map2, int size);
 void 	print_map(int process_rank, int k, int rows_to_receive, unsigned char *map);
 int 	nrows_given_process(int process_rank, int rows_per_process, int max_nrows);
 void 	calculate_rows_per_processor(int nrows, int nprocessors, int *rows_per_processor, int *start_indices);
+void 	delete_pgm_files(const char *folder_path);
 #endif //UTILITIES_H

@@ -17,7 +17,7 @@
 int   	action = 0;
 int   	k      = K_DFLT;
 int   	e      = STATIC;
-int   	n      = 10000;
+int   	n      = N_STEPS;
 int   	s      = 1;
 int 	maxval = 255; //255 -> white, 0 -> black
 double 	tend;
@@ -42,8 +42,9 @@ int main(int argc, char** argv)
     	unsigned char *sub_map = NULL;
     	unsigned char *sub_map_copy = NULL;
     	char snapshot_name[100];
-
+	const char *snapshot_folder_path = "images/snapshots";
 	char *fname  = NULL;
+	long int step_counter = 0;
     	
 	MPI_Comm_size(MPI_COMM_WORLD, &size_of_cluster);
     	MPI_Comm_rank(MPI_COMM_WORLD, &process_rank);
@@ -63,6 +64,8 @@ int main(int argc, char** argv)
 			printf("Size of MPI cluster: %d\n", size_of_cluster);
 	        #endif
 	        command_line_parser(&action, &k, &e, &fname, &n, &s, argc, argv);
+		printf("- Matrix size: %d\n- Number of steps: %d\n- e: %d(0=ORDERED, 1=STATIC)\n- Action: %d (1=INIT, 2=RUN)\n",
+			k, n, e, action);
 		nrows = k+2;
 		calculate_rows_per_processor(nrows, size_of_cluster, rows_per_processor, start_indices);
 			
@@ -71,10 +74,7 @@ int main(int argc, char** argv)
 		
 	        if (e == STATIC){
 	            static_set_up_other_map(map1, &map2, k);
-	        } else if (e == ORDERED){
-	            /*init_to_zero(map1_char, k); need to adjust to new matrix size
-	 * 		ncols*nrows */
-		}
+	        } 
 		my_process_rows = rows_per_processor[0];
 		my_process_start_idx = start_indices[0];
 
@@ -83,16 +83,38 @@ int main(int argc, char** argv)
 			MPI_Send(&start_indices[i], 1, MPI_INT, i, 0, MPI_COMM_WORLD); 
 			MPI_Send(&k, 1, MPI_INT, i, 0, MPI_COMM_WORLD); 
 		}
+		//deleting old snapshots
+		delete_pgm_files(snapshot_folder_path); 
 		
     	} else {
 		MPI_Recv(&my_process_rows, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
 		MPI_Recv(&my_process_start_idx, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
 		MPI_Recv(&k, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
 	}
-	
-    if (e == ORDERED){
-        printf("\nOrdered evolution to be implemented with MPI\n");
-        exit(1);
+
+    	if (e == ORDERED){
+		tstart= CPU_TIME;
+		if (step_counter != 0){
+			for(int i = 0; i < n; i++){
+				ordered_evolution(map1_char, k, nrows); 		
+				step_counter++;
+				if (step_counter == s){
+					sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", i);
+	  				write_pgm_image(map1_char, maxval, k, nrows, snapshot_name);
+					step_counter = 0;
+				}
+			}
+		} else {
+			for(int i = 0; i < n; i++){
+				ordered_evolution(map1_char, k, nrows); 		
+			}
+				sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", n);
+	  			write_pgm_image(map1_char, maxval, k, nrows, snapshot_name);
+		}
+		tend = CPU_TIME;
+		ex_time = tend-tstart;
+		printf("\n\n%f\n\n", ex_time);
+
     } else if (e == STATIC){
 		//Allocate space for local maps
 		sub_map = (unsigned char*)calloc(my_process_rows*k, sizeof(unsigned char));
@@ -104,14 +126,13 @@ int main(int argc, char** argv)
 		}
 
 		if (process_rank == 0){
-			#ifdef PROFILING
-		        tstart= CPU_TIME;
-			#endif
+			tstart= CPU_TIME;
 		}
-		for(int i = 0; i < N_STEPS; i++){
+		for(int i = 0; i < n; i++){
 			/* 1) Scattering the map 
 			 * Not using MPI_Scatter because I want to specify the rows to send exactly. */
 			if (process_rank ==0){
+				step_counter++;
 				for (int i = 1; i < size_of_cluster; i++){
 					MPI_Send(map1_char + start_indices[i]*k, rows_per_processor[i]*k, MPI_UNSIGNED_CHAR, i, 0, MPI_COMM_WORLD);
 				}
@@ -136,21 +157,25 @@ int main(int argc, char** argv)
 
 			if (process_rank == 0){
 				update_horizontal_edges(map1_char, k, nrows);
-				sprintf(snapshot_name, "images/snapshots/snapshot%d.pgm", i);
-		        	write_pgm_image(map1_char, maxval, k, nrows, snapshot_name);
-		        }
+				if (s != 0){
+					if (step_counter == s){
+						sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", i);
+			        		write_pgm_image(map1_char, maxval, k, nrows, snapshot_name);
+			        		step_counter = 0;
+					}
+				}
+			}
     		}
+
 		if (process_rank == 0){
-			#ifdef PROFILING
+			sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", n-1);
+	  		write_pgm_image(map1_char, maxval, k, nrows, snapshot_name);
+
 		        tend = CPU_TIME;
 		        ex_time = tend-tstart;
 		        printf("\n\n%f\n\n", ex_time);
-			#endif
 		}
-
 		    
-		MPI_Barrier(MPI_COMM_WORLD);
-
 		// Free sub_map and sub_map_copy in each process
 		free(sub_map);
 		free(sub_map_copy);
@@ -166,9 +191,6 @@ int main(int argc, char** argv)
 		map1 = NULL;
 	}
 
-	MPI_Barrier(MPI_COMM_WORLD);
-
-	// Finalize MPI only once for all processes
 	MPI_Finalize();
 
     return 0;
