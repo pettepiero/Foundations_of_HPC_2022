@@ -6,6 +6,7 @@
 #SBATCH --ntasks-per-node=2 
 #SBATCH --cpus-per-task=12
 #SBATCH --nodes=4
+#SBATCH --exclusive
 #SBATCH --output=./outputs/slurm-%j-mpi-scal.txt
 
 module load openMPI/4.1.6/gnu/14.2.1
@@ -29,7 +30,7 @@ if [ "$1" == "-s" ]; then
     output_file="./outputs/timings/openmp-scal-$SLURM_JOB_ID-serial.csv"
 fi
 echo "dim,mpi-tasks,time" > "$output_file"
-for dim in 1000 1500 2000
+for dim in 1000 2000 4000 8000 16000 20000
 do
 	for ntasks in 1 2 3 4 5 6 7 8; do
 		echo "Running $ntasks MPI tasks"
