@@ -61,8 +61,8 @@ int main(int argc, char** argv)
     	if(process_rank == 0){
 	        #ifndef _OPENMP
 	        	printf("\nExecuting without OPENMP in serial mode.\n");
-			printf("Size of MPI cluster: %d\n", size_of_cluster);
 	        #endif
+		printf("Size of MPI cluster: %d\n", size_of_cluster);
 	        command_line_parser(&action, &k, &e, &fname, &n, &s, argc, argv);
 		printf("- Matrix size: %d\n- Number of steps: %d\n- e: %d(0=ORDERED, 1=STATIC)\n- Action: %d (1=INIT, 2=RUN)\n",
 			k, n, e, action);
@@ -79,6 +79,7 @@ int main(int argc, char** argv)
 		my_process_start_idx = start_indices[0];
 
 		for (int i=1; i<size_of_cluster; i++){
+			MPI_Send(&e, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
 			MPI_Send(&rows_per_processor[i], 1, MPI_INT, i, 0, MPI_COMM_WORLD);
 			MPI_Send(&start_indices[i], 1, MPI_INT, i, 0, MPI_COMM_WORLD); 
 			MPI_Send(&k, 1, MPI_INT, i, 0, MPI_COMM_WORLD); 
@@ -86,13 +87,14 @@ int main(int argc, char** argv)
 		//deleting old snapshots
 		delete_pgm_files(snapshot_folder_path); 
 		
-    	} else {
+    	} else if (process_rank != 0){
+		MPI_Recv(&e, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		MPI_Recv(&my_process_rows, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
 		MPI_Recv(&my_process_start_idx, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
 		MPI_Recv(&k, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
 	}
 
-    	if (e == ORDERED){
+    	if ((e == ORDERED) && (process_rank ==0)){
 		tstart= CPU_TIME;
 		if (step_counter != 0){
 			for(int i = 0; i < n; i++){
@@ -190,7 +192,9 @@ int main(int argc, char** argv)
 		map2 = NULL;
 		map1 = NULL;
 	}
-
+	printf("Process %d: before MPI_Barrier\n", process_rank);
+	MPI_Barrier(MPI_COMM_WORLD);
+	printf("Process %d: calling MPI_Finalize()\n", process_rank);
 	MPI_Finalize();
 
     return 0;
