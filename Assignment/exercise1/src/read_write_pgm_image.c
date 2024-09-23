@@ -79,19 +79,15 @@ void read_pgm_image( void **image, int *maxval, int *xsize, int *ysize, const ch
  * xsize, ysize : pointers to the x and y sizes
  * image_name   : the name of the file to be read*/
 {
-
-	printf("DEBUG: read_pgm_image, argument image:\n"
-		"address of pointer that will contain the image: %p\n"
-		"address of the image: %p\n", image, *image);
-
   	FILE* image_file; 
   	image_file = fopen(image_name, "r"); 
+	if (image_file == NULL){
+		printf("Error: cannot open file %s\n", image_name);
+		exit(1);
+	}
         free(*image);
   	*image = NULL;
   	*xsize = *ysize = *maxval = 0;
- 
-  	printf("DEBUG: now *image = %p \nimage = %p\n", *image, image);
-
  
   	char    MagicN[2];
   	char   *line = NULL;
@@ -115,14 +111,10 @@ void read_pgm_image( void **image, int *maxval, int *xsize, int *ysize, const ch
   	  {
   	    *maxval = -1;         // this is the signal that there was an I/O error
   	      		    // while reading the image header
-  	      printf("Before free() 1\n");
   	    free( line );
-  	      printf("After free() 1\n");
   	    return;
   	  }
-  	      printf("Before free() 2\n");
-  	      free( line );
-  	      printf("After free() 2\n");
+  	  free( line );
   	
   	int color_depth = 1 + ( *maxval > 255 );
   	unsigned int size = *xsize * *ysize * color_depth;
@@ -136,8 +128,6 @@ void read_pgm_image( void **image, int *maxval, int *xsize, int *ysize, const ch
   	    return;
   	  }
   	
-  	      printf("DEBUG: after malloc, *image = %p \nimage = %p\n", *image, image);
-	printf("Going from address %p to address %p\n", *image, &(*image)[size-1]);
   	if ( fread( *image, 1, size, image_file) != size )
   	  {
   	    free( *image );

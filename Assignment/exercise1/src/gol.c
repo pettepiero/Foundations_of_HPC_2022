@@ -41,7 +41,6 @@ int main(int argc, char** argv)
     	unsigned char *map1_char = NULL;
     	unsigned char *sub_map = NULL;
     	unsigned char *sub_map_copy = NULL;
-    	char file[] = "images/blinker.pgm";
     	char snapshot_name[100];
 
 	char *fname  = NULL;
@@ -61,23 +60,13 @@ int main(int argc, char** argv)
     	if(process_rank == 0){
 	        #ifndef _OPENMP
 	        	printf("\nExecuting without OPENMP in serial mode.\n");
-			printf("Size of cluster: %d\n", size_of_cluster);
+			printf("Size of MPI cluster: %d\n", size_of_cluster);
 	        #endif
 	        command_line_parser(&action, &k, &e, &fname, &n, &s, argc, argv);
-	        if((action != RUN) && (action != INIT)){
-		    printf("Rank %d: No action specified\n", process_rank);
-	            printf("Possible actions:\n"
-	                    "r - Run a world\n"
-	                    "i - Initialize a world\n"
-	                    "Evolution types:\n"
-	                    "e 0 - Ordered evolution\n"
-	                    "e 1 - Static evolution\n\n");
-	            exit(1);
-	        }
 		nrows = k+2;
 		calculate_rows_per_processor(nrows, size_of_cluster, rows_per_processor, start_indices);
-	
-		set_up_map_variable(action, e, k, &map1, maxval, file);
+			
+		set_up_map_variable(action, e, k, &map1, maxval, fname);
 	        map1_char = (unsigned char*)map1;
 		
 	        if (e == STATIC){

@@ -76,12 +76,7 @@ void print_map_to_file(unsigned char *restrict map, const int ncols, const int n
 
 }
 
-unsigned char *generate_map(unsigned char *restrict map, const char fileName[], const float probability, const int ncols, const int nrows, const int seed){
-
-    	#ifdef DEBUG
-    	printf("Generating random map:\n");
-    	#endif
-
+unsigned char *generate_map(unsigned char *restrict map, char* fname, const float probability, const int ncols, const int nrows, const int seed){
     	if(seed == 0)
         	srand(time(0));
     	else
@@ -100,8 +95,7 @@ unsigned char *generate_map(unsigned char *restrict map, const char fileName[], 
 
 /* update boundary conditions (first and last rows)*/
 	update_horizontal_edges(map, ncols, nrows);
-    	write_pgm_image(map, maxval, ncols, nrows, fileName);
-    	printf("PGM file created: %s\n", fileName);
+    	write_pgm_image(map, maxval, ncols, nrows, fname);
     	return map;
 }
 
