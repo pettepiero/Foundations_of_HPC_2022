@@ -16,7 +16,7 @@
 #define ORDERED 0
 #define STATIC  1
 #define N_STEPS 100
-
+#define MAXVAL 255  /*255 -> white, 0 -> black*/
 
 extern int 	action;
 extern int 	k;

@@ -36,7 +36,6 @@ int main(int argc, char** argv)
     	int process_rank;
 	int nrows;
     	void *map1 = NULL;
-    	void *map2 = NULL;
     	unsigned char *map1_char = NULL;
     	unsigned char *sub_map = NULL;
     	unsigned char *sub_map_copy = NULL;
@@ -144,49 +143,68 @@ int main(int argc, char** argv)
 		if (process_rank == 0){
 			tstart= CPU_TIME;
 		}
-		for(int i = 0; i < n; i++){
-			/* 1) Scattering the map 
-			 * Not using MPI_Scatter because I want to specify the rows to send exactly. */
-			if (process_rank ==0){
-				step_counter++;
-				for (int i = 1; i < size_of_cluster; i++){
-					MPI_Send(map1_char + start_indices[i]*k, rows_per_processor[i]*k, MPI_UNSIGNED_CHAR, i, 0, MPI_COMM_WORLD);
-				}
-				memcpy(sub_map, map1_char, k*my_process_rows);
-			} else {
-				MPI_Recv(sub_map, my_process_rows*k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			} 
 
-			/*Perform evolution in parallel*/
-			static_evolution(sub_map, sub_map_copy, k, my_process_rows);
+		if (process_rank == 0) {
+			if (s != 0){
+				/* Loop every s steps for snapshot */
+				for (int i = 0; i < n; i += s) {
+					/* Loop over number of steps without snapshot */
+					for (int j = 0; j < s && i + j < n; j++) {
+						/* Loop over MPI cluster */
+			        		for (int rank = 1; rank < size_of_cluster; rank++) {
+			        			MPI_Send(map1_char + start_indices[rank]*k, rows_per_processor[rank]*k, MPI_UNSIGNED_CHAR, rank, 0, MPI_COMM_WORLD);
+			        		}
+			        		memcpy(sub_map, map1_char, k*my_process_rows);
 
-			if (process_rank == 0) {
-				for (int j = 1; j < size_of_cluster; j++) {
-			/* NOTE: receiving only inner rows, not the out-of-date boundaries used only for computation! */
-				    	MPI_Recv(map1_char + (start_indices[j]+1)*k, (rows_per_processor[j]-2)*k, MPI_UNSIGNED_CHAR, j, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			        		// Perform evolution in parallel
+			        		static_evolution(sub_map, sub_map_copy, k, my_process_rows);
+    
+			        		// Gathering the results from other processes.
+			        		for (int rank = 1; rank < size_of_cluster; rank++) {
+			        			MPI_Recv(map1_char + (start_indices[rank]+1)*k, (rows_per_processor[rank]-2)*k, MPI_UNSIGNED_CHAR, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			        		}
+			        		memcpy(map1_char, sub_map, k*my_process_rows);
+			        		update_horizontal_edges(map1_char, k, nrows);
+   					}
+					/* Steps without snapshots are over */
+			    		sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", i + s - 1);
+			    		write_pgm_image(map1_char, MAXVAL, k, nrows, snapshot_name);
 				}
-				memcpy(map1_char, sub_map, k*my_process_rows);
-			} else {
-			/* NOTE: sending only inner rows, not the out-of-date boundaries used only for computation! */
-				MPI_Send(sub_map +k, (my_process_rows-2)*k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD); 
-			}
-
-			if (process_rank == 0){
-				update_horizontal_edges(map1_char, k, nrows);
-				if (s != 0){
-					if (step_counter == s){
-						sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", i);
-			        		write_pgm_image(map1_char, MAXVAL, k, nrows, snapshot_name);
-			        		step_counter = 0;
-					}
-				}
-			}
-    		}
+			} else { /* In this case the whole evolution is performed without snapshots until the very end */ 
+    		    		for (int i = 0; i < n; i++) {
+		        		// Scattering the map
+		        		for (int rank = 1; rank < size_of_cluster; rank++) {
+		        			MPI_Send(map1_char + start_indices[rank]*k, rows_per_processor[rank]*k, MPI_UNSIGNED_CHAR, rank, 0, MPI_COMM_WORLD);
+		        		}
+		        		memcpy(sub_map, map1_char, k*my_process_rows);
+		        		
+		        		// Perform evolution in parallel
+		        		static_evolution(sub_map, sub_map_copy, k, my_process_rows);
+		        		
+		        		// Gathering the results from other processes
+		        		for (int rank = 1; rank < size_of_cluster; rank++) {
+		        			MPI_Recv(map1_char + (start_indices[rank]+1)*k, (rows_per_processor[rank]-2)*k, MPI_UNSIGNED_CHAR, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		        		}
+		        		memcpy(map1_char, sub_map, k*my_process_rows);
+		       		} 
+			    	sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", n - 1);
+			    	write_pgm_image(map1_char, MAXVAL, k, nrows, snapshot_name);
+   			}
+		} else {
+			// Non-zero ranks handle receiving, evolving, and sending data.
+		    	for (int i = 0; i < n; i++) {
+		    		// Receive the map segment from rank 0
+		    	    	MPI_Recv(sub_map, my_process_rows * k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		
+		    	    	// Perform evolution in parallel
+		    	    	static_evolution(sub_map, sub_map_copy, k, my_process_rows);
+		
+		    	    	// Send only the inner rows back to rank 0
+		    	    	MPI_Send(sub_map + k, (my_process_rows - 2) * k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD);
+		    	}
+		}
 
 		if (process_rank == 0){
-			sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", n-1);
-	  		write_pgm_image(map1_char, MAXVAL, k, nrows, snapshot_name);
-
 		        tend = CPU_TIME;
 		        ex_time = tend-tstart;
 		        printf("\n\n%f\n\n", ex_time);
