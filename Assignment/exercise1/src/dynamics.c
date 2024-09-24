@@ -14,7 +14,7 @@ unsigned char *generate_blinker(unsigned char *restrict map, char fileName[], co
     	map[((int)(nrows-1)/2) * ncols + (int)((ncols-1)/2)] = 255;
     	map[((int)(nrows-1)/2 +1)* ncols + (int)((ncols-1)/2)] = 255;
 
-    	write_pgm_image(map, maxval, ncols, nrows, fileName);
+    	write_pgm_image(map, MAXVAL, ncols, nrows, fileName);
 	printf("\n\n");    
 	printf("PGM file created: %s with dimensions %d x %d\n", fileName, nrows, ncols);
 
@@ -95,7 +95,7 @@ unsigned char *generate_map(unsigned char *restrict map, char* fname, const floa
 
 /* update boundary conditions (first and last rows)*/
 	update_horizontal_edges(map, ncols, nrows);
-    	write_pgm_image(map, maxval, ncols, nrows, fname);
+    	write_pgm_image(map, MAXVAL, ncols, nrows, fname);
     	return map;
 }
 
@@ -146,15 +146,13 @@ char update_cell(const int alive_neighbours)
     if(alive_neighbours < 2 || alive_neighbours > 3)
         return 0;
     else
-        return 255;
+        return MAXVAL;
 }
 
 
 
 void ordered_evolution(unsigned char *restrict map, int ncols, int nrows)
 {
-	#if defined(_OPENMP)
-	#pragma omp parallel for
     	for (int row = 1; row < nrows-1; row++)
     	{
     	    for (int col = 0; col < ncols; col++)
@@ -164,17 +162,6 @@ void ordered_evolution(unsigned char *restrict map, int ncols, int nrows)
     	        map[i] = update_cell(alive_counter);
     	    }
     	}
-	#else
-    	for (int row = 1; row < nrows-1; row++)
-    	{
-    	    for (int col = 0; col < ncols; col++)
-    	    {
-    	        int i = row*ncols+ col;
-    	        int alive_counter = count_alive_neighbours(map, ncols, i);
-    	        map[i] = update_cell(alive_counter);
-    	    }
-    	}
-	#endif
 }
 
 

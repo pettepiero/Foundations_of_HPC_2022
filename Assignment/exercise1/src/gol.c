@@ -19,7 +19,6 @@ int   	k      = K_DFLT;
 int   	e      = STATIC;
 int   	n      = N_STEPS;
 int   	s      = 1;
-int 	maxval = 255; //255 -> white, 0 -> black
 double 	tend;
 double 	tstart;
 double  ex_time; 
@@ -64,17 +63,17 @@ int main(int argc, char** argv)
 	        #endif
 		printf("Size of MPI cluster: %d\n", size_of_cluster);
 	        command_line_parser(&action, &k, &e, &fname, &n, &s, argc, argv);
-		printf("- Matrix size: %d\n- Number of steps: %d\n- e: %d(0=ORDERED, 1=STATIC)\n- Action: %d (1=INIT, 2=RUN)\n",
-			k, n, e, action);
+		printf("- Matrix size: %d\n- Number of steps: %d\n- e: %d(0=ORDERED, 1=STATIC)\n- Action: %d (1=INIT, 2=RUN)\n"
+			"- s: %d\n", k, n, e, action, s);
 		nrows = k+2;
 		calculate_rows_per_processor(nrows, size_of_cluster, rows_per_processor, start_indices);
 			
-		set_up_map_variable(action, e, k, &map1, maxval, fname);
+		set_up_map_variable(action, e, k, &map1, MAXVAL, fname);
 	        map1_char = (unsigned char*)map1;
 		
-	        if (e == STATIC){
+	        /*if (e == STATIC){
 	            static_set_up_other_map(map1, &map2, k);
-	        } 
+	        } */
 		my_process_rows = rows_per_processor[0];
 		my_process_start_idx = start_indices[0];
 
@@ -96,22 +95,31 @@ int main(int argc, char** argv)
 
     	if ((e == ORDERED) && (process_rank ==0)){
 		tstart= CPU_TIME;
-		if (step_counter != 0){
-			for(int i = 0; i < n; i++){
+		if (s != 0){
+			for (int i = 0; i < n; i += s) {
+			    for (int j = 0; j < s && i + j < n; j++) {
+			        ordered_evolution(map1_char, k, nrows);
+			    }
+			    sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", i + s - 1);
+			    write_pgm_image(map1_char, MAXVAL, k, nrows, snapshot_name);
+			}
+
+
+/*			for(int i = 0; i < n; i++){
 				ordered_evolution(map1_char, k, nrows); 		
 				step_counter++;
 				if (step_counter == s){
 					sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", i);
-	  				write_pgm_image(map1_char, maxval, k, nrows, snapshot_name);
+	  				write_pgm_image(map1_char, MAXVAL, k, nrows, snapshot_name);
 					step_counter = 0;
 				}
 			}
-		} else {
+*/		} else {
 			for(int i = 0; i < n; i++){
 				ordered_evolution(map1_char, k, nrows); 		
 			}
-				sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", n);
-	  			write_pgm_image(map1_char, maxval, k, nrows, snapshot_name);
+			sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", n);
+	  		write_pgm_image(map1_char, MAXVAL, k, nrows, snapshot_name);
 		}
 		tend = CPU_TIME;
 		ex_time = tend-tstart;
@@ -119,14 +127,20 @@ int main(int argc, char** argv)
 
     } else if (e == STATIC){
 		//Allocate space for local maps
-		sub_map = (unsigned char*)calloc(my_process_rows*k, sizeof(unsigned char));
-		sub_map_copy = (unsigned char*)calloc(my_process_rows*k, sizeof(unsigned char));
+		sub_map = (unsigned char*)malloc(my_process_rows*k*sizeof(unsigned char));
+		sub_map_copy = (unsigned char*)malloc(my_process_rows*k*sizeof(unsigned char));
 		
 		if (sub_map == NULL || sub_map_copy == NULL){
 			printf("Process %d error: Could not allocate memory for local maps\n", process_rank);
 			exit(1);
 		}
 
+		/* Initialize local sub matrices with OpenMP, to warm up the data properly*/
+		#pragma omp parallel for
+		for (int i=0; i<my_process_rows*k; i++){
+			sub_map[i] = 0;	
+		}	
+	
 		if (process_rank == 0){
 			tstart= CPU_TIME;
 		}
@@ -162,7 +176,7 @@ int main(int argc, char** argv)
 				if (s != 0){
 					if (step_counter == s){
 						sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", i);
-			        		write_pgm_image(map1_char, maxval, k, nrows, snapshot_name);
+			        		write_pgm_image(map1_char, MAXVAL, k, nrows, snapshot_name);
 			        		step_counter = 0;
 					}
 				}
@@ -171,7 +185,7 @@ int main(int argc, char** argv)
 
 		if (process_rank == 0){
 			sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", n-1);
-	  		write_pgm_image(map1_char, maxval, k, nrows, snapshot_name);
+	  		write_pgm_image(map1_char, MAXVAL, k, nrows, snapshot_name);
 
 		        tend = CPU_TIME;
 		        ex_time = tend-tstart;
@@ -188,13 +202,11 @@ int main(int argc, char** argv)
 	// Free map1 and map2 only in process 0
 	if (process_rank == 0) {
 		free(map1);
-		free(map2);
-		map2 = NULL;
+		/*free(map2);
+		map2 = NULL; */
 		map1 = NULL;
 	}
-	printf("Process %d: before MPI_Barrier\n", process_rank);
 	MPI_Barrier(MPI_COMM_WORLD);
-	printf("Process %d: calling MPI_Finalize()\n", process_rank);
 	MPI_Finalize();
 
     return 0;
