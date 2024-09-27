@@ -193,7 +193,7 @@ void edges_static_evolution(unsigned char *restrict current, unsigned char *rest
 
 void static_evolution(unsigned char *restrict current, unsigned char *restrict new, int ncols, int nrows){
 	int n_inner_rows = nrows -2;	
-    	memcpy(new, current, nrows*ncols*sizeof(unsigned char));
+//   	memcpy(new, current, nrows*ncols*sizeof(unsigned char));
     /*Performs a single step of the update of the map*/
    
 	#if defined(_OPENMP)
@@ -210,7 +210,7 @@ void static_evolution(unsigned char *restrict current, unsigned char *restrict n
 				new[i] = update_cell(alive_counter);
 			}
 			/*Count alive neighbours for left and right
- * 			 border elements */
+  			 border elements */
 			i = row*ncols;
 			left_border_counter = 0;
 			right_border_counter = 0;
@@ -248,13 +248,6 @@ void static_evolution(unsigned char *restrict current, unsigned char *restrict n
 	int left_border_counter = 0;
 	int right_border_counter = 0;
 	int i = 0;
-	/*for(int row=1; row < n_inner_rows-1; row++)
-	    for(int col=0; col < ncols; col++)    
-	{
-	    i = row*ncols + col;
-	    alive_counter = count_alive_neighbours(current, ncols, i);
-	    new[i] = update_cell(alive_counter);
-	}*/
 		/* Inner matrix loop */
 	for(int row=1; row <= n_inner_rows; row++){
 		for(int col=1; col < ncols-1; col++){

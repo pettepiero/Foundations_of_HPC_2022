@@ -10,9 +10,6 @@
 #include "dynamics.h"
 #include <omp.h>
 #include <mpi.h>
-#if !defined(_OPENMP)
-#warning "Run "make openmp" to enable OpenMP."
-#endif
 
 int   	action = 0;
 int   	k      = K_DFLT;
@@ -42,7 +39,6 @@ int main(int argc, char** argv)
     	char snapshot_name[100];
 	const char *snapshot_folder_path = "images/snapshots";
 	char *fname  = NULL;
-	long int step_counter = 0;
     	
 	MPI_Comm_size(MPI_COMM_WORLD, &size_of_cluster);
     	MPI_Comm_rank(MPI_COMM_WORLD, &process_rank);
@@ -138,6 +134,7 @@ int main(int argc, char** argv)
 		#pragma omp parallel for
 		for (int i=0; i<my_process_rows*k; i++){
 			sub_map[i] = 0;	
+			sub_map_copy[i]=0;
 		}	
 	
 		if (process_rank == 0){
@@ -210,21 +207,18 @@ int main(int argc, char** argv)
 		        printf("\n\n%f\n\n", ex_time);
 		}
 		    
-		// Free sub_map and sub_map_copy in each process
+		/* Free sub_map and sub_map_copy in each process */
 		free(sub_map);
 		free(sub_map_copy);
 		sub_map = NULL;
 		sub_map_copy = NULL;
 	}
 
-	// Free map1 and map2 only in process 0
+	/* Free map1 and map2 only in process 0 */
 	if (process_rank == 0) {
 		free(map1);
-		/*free(map2);
-		map2 = NULL; */
 		map1 = NULL;
 	}
-	MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Finalize();
 
     return 0;
