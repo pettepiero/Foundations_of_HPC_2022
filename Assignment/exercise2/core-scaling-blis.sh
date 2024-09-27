@@ -3,7 +3,7 @@
 #SBATCH --job-name=blis-core-scaling
 #SBATCH --partition=THIN
 #SBATCH --time=02:00:0
-#SBATCH --cpus-per-task=24
+#SBATCH --cpus-per-task=12
 #SBATCH --ntasks-per-node=1 
 #SBATCH --mem=200gb
 #SBATCH --nodes=1
@@ -18,7 +18,12 @@ echo "Loading modules"
 export LD_LIBRARY_PATH=/u/dssc/ppette00/myblis/lib:$LD_LIBRARY_PATH
 export OMP_PLACES=threads
 
-output_file="./outputs/core_scaling/blis-core-scaling-$SLURM_JOB_ID.csv"
+if [ "$1" == "-s" ]; then
+    	output_file="./outputs/core_scaling/blis-scal-$SLURM_JOB_ID-serial.csv"
+else
+	output_file="./outputs/core_scaling/blis-core-scaling-$SLURM_JOB_ID-init.csv"
+fi
+
 matrix_size=10000
 
 # Add header
@@ -32,27 +37,26 @@ do
 	do
 		echo "Measurement $j"
 	
-		for ((i=1;i<=24;i+=1))
+		for ((i=1;i<=12;i+=1))
 		do
-	
-			echo "Iteration $i"
-			export BLIS_NUM_THREADS=$i # check out: https://github.com/flame/blis/blob/master/docs/Multithreading.md
-		
-			output=$(srun -n1 --cpus-per-task=$i ./gemm_blis_single.x $matrix_size $matrix_size $matrix_size)
-		
-			# Extract relevant information
-			seconds=$(echo "$output" | tail -n 1 | awk '{print $2}')
-			gflops=$(echo "$output" | tail -n 1 | awk '{print $4}')
-		
-			echo "$j,$i,$seconds,$gflops,Single,$binding" >> "$output_file"
-		
-			output=$(srun -n1 --cpus-per-task=$i ./gemm_blis_double.x $matrix_size $matrix_size $matrix_size)
-		
-			# Extract relevant information
-			seconds=$(echo "$output" | tail -n 1 | awk '{print $2}')
-			gflops=$(echo "$output" | tail -n 1 | awk '{print $4}')
-		
-			echo "$j,$i,$seconds,$gflops,Double,$binding" >> "$output_file"
+				echo "Iteration $i"
+				export BLIS_NUM_THREADS=$i # check out: https://github.com/flame/blis/blob/master/docs/Multithreading.md
+			
+				output=$(srun -n1 --cpus-per-task=$i ./gemm_blis_single.x $matrix_size $matrix_size $matrix_size)
+			
+				# Extract relevant information
+				seconds=$(echo "$output" | tail -n 1 | awk '{print $2}')
+				gflops=$(echo "$output" | tail -n 1 | awk '{print $4}')
+			
+				echo "$j,$i,$seconds,$gflops,Single,$binding" >> "$output_file"
+			
+				output=$(srun -n1 --cpus-per-task=$i ./gemm_blis_double.x $matrix_size $matrix_size $matrix_size)
+			
+				# Extract relevant information
+				seconds=$(echo "$output" | tail -n 1 | awk '{print $2}')
+				gflops=$(echo "$output" | tail -n 1 | awk '{print $4}')
+			
+				echo "$j,$i,$seconds,$gflops,Double,$binding" >> "$output_file"
 		done
 	done
 done

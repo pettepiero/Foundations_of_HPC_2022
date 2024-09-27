@@ -3,7 +3,7 @@
 #SBATCH --job-name=oblas-core-scaling
 #SBATCH --partition=THIN
 #SBATCH --time=02:00:0
-#SBATCH --cpus-per-task=24
+#SBATCH --cpus-per-task=12
 #SBATCH --ntasks-per-node=1 
 #SBATCH --mem=200gb
 #SBATCH --nodes=1
@@ -19,7 +19,7 @@ module load openBLAS/0.3.26-omp
 OPENBLASROOT=${OPENBLAS_ROOT}
 export OMP_PLACES=threads
 
-output_file="./outputs/core_scaling/oblas-core-scaling-$SLURM_JOB_ID.csv"
+output_file="./outputs/core_scaling/oblas-core-scaling-$SLURM_JOB_ID-init.csv"
 matrix_size=10000
 # Add header
 echo "Measurement,Number of CPUs,Seconds,GFLOPS,Precision,Bind(threads)"> "$output_file"
@@ -31,7 +31,7 @@ do
 	do
 		echo "Measurement $j"
 	
-		for ((i=1;i<=24;i+=1))
+		for ((i=1;i<=12;i+=1))
 		do
 	
 			echo "Iteration $i"
