@@ -77,6 +77,7 @@ int main(int argc, char** argv)
 			MPI_Send(&rows_per_processor[i], 1, MPI_INT, i, 0, MPI_COMM_WORLD);
 			MPI_Send(&start_indices[i], 1, MPI_INT, i, 0, MPI_COMM_WORLD); 
 			MPI_Send(&k, 1, MPI_INT, i, 0, MPI_COMM_WORLD); 
+			MPI_Send(&n, 1, MPI_INT, i, 0, MPI_COMM_WORLD); 
 		}
 		//deleting old snapshots
 		delete_pgm_files(snapshot_folder_path); 
@@ -86,6 +87,7 @@ int main(int argc, char** argv)
 		MPI_Recv(&my_process_rows, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
 		MPI_Recv(&my_process_start_idx, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
 		MPI_Recv(&k, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
+		MPI_Recv(&n, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
 	}
 
     	if ((e == ORDERED) && (process_rank ==0)){
@@ -139,9 +141,6 @@ int main(int argc, char** argv)
 	
 		if (process_rank == 0){
 			tstart= CPU_TIME;
-		}
-
-		if (process_rank == 0) {
 			if (s != 0){
 				/* Loop every s steps for snapshot */
 				for (int i = 0; i < n; i += s) {

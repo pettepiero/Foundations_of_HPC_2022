@@ -2,10 +2,10 @@
 #SBATCH -A dssc
 #SBATCH --job-name=openmp-scal
 #SBATCH --partition=THIN
-#SBATCH --nodelist=thin001
+#SBATCH --nodelist=thin009
 #SBATCH --time=02:00:0
 #SBATCH --exclusive
-#SBATCH --ntasks=2
+#SBATCH --cpus-per-task=12
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=2
 #SBATCH --output=./outputs/slurm-%j-openmp-scal.txt
@@ -41,8 +41,7 @@ do
             echo "Running with $i threads"
             export OMP_NUM_THREADS=$i
             
-            output=$(mpirun -n 2 --map-by socket ./build/gol.x -i -e $evolution -k $dim -s 0)
-
+            output=$(mpirun -n 1 ./build/gol.x -i -e $evolution -k $dim -s 0)
             time=$(echo "$output" | tail -n 1)
             echo "$dim,$i,$time" >> "$output_file"
 

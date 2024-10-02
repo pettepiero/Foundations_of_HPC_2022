@@ -114,22 +114,21 @@ int count_alive_neighbours(unsigned char *restrict map, const int ncols, const i
 {
 	// NOTE: indexes that are passed should not be on the edges!
 	if (index >= ncols){
+		int count0 = 0;
+		int count1 = 0;
+		int count2 = 0;
+		int count3 = 0;
 		int count = 0;
 		int neighbours[] = {index-1, index+1, index-ncols, index+ncols, index-ncols-1, index-ncols+1, index+ncols-1, index+ncols+1};
 
-	    // #ifdef DEBUG
-	    // printf("Neighbours of %d: \n", index);
-	    // for (int i=0; i<8; i++)
-	    // {
-	    //     printf("%d=%d \n", neighbours[i], map[neighbours[i]]);
-	    // }
-	    // #endif
-
-		for (int i = 0; i < 8; i++)
-			if (map[neighbours[i]] == 255)
-			    count++;
-
-		return count;
+		for (int i = 0; i < 8; i+=4){
+			    count0 += map[neighbours[i]]; 
+			    count1 += map[neighbours[i+1]]; 
+			    count2 += map[neighbours[i+2]]; 
+			    count3 += map[neighbours[i+3]]; 
+		}
+		count = count0+count1+count2+count3;
+		return count/255;  /*Will be optimized by -O2 option of gcc into multiplication and shift */
 	}
 	else {
 		printf("Error in count_alive_neighbours\n");
@@ -165,44 +164,20 @@ void ordered_evolution(unsigned char *restrict map, int ncols, int nrows)
 }
 
 
-void edges_static_evolution(unsigned char *restrict current, unsigned char *restrict new, unsigned char left_col[], unsigned char right_col[], int n_inner_rows, int ncols){
-	int left_border_counter = 0;
-	int right_border_counter = 0;
-	for(int row=1; row < n_inner_rows-1; row++){
-		left_border_counter += left_col[row-1] -'0';	
-		left_border_counter += left_col[row]-'0';	
-		left_border_counter += left_col[row+1]-'0';	
-		left_border_counter += current[(row-1)*ncols+1]-'0';	
-		left_border_counter += current[(row-1)*ncols]-'0';	
-		left_border_counter += current[row*ncols+1]-'0';	
-		left_border_counter += current[(row+1)*ncols]-'0';
-		left_border_counter += current[(row+1)*ncols+1]-'0';
-		new[row*ncols] = update_cell(left_border_counter);
-
-		right_border_counter += right_col[row-1]-'0';	
-		right_border_counter += right_col[row]-'0';	
-		right_border_counter += right_col[row+1]-'0';	
-		right_border_counter += current[(row-1)*ncols+ncols-1]-'0';	
-		right_border_counter += current[(row-1)*ncols+ncols-2]-'0';	
-		right_border_counter += current[row*ncols+ncols-2]-'0';	
-		right_border_counter += current[(row+1)*ncols+ncols-1]-'0';
-		right_border_counter += current[(row+1)*ncols+ncols-2]-'0';
-		new[row*ncols+ncols-1] = update_cell(right_border_counter);
-	} 
-}
-
 void static_evolution(unsigned char *restrict current, unsigned char *restrict new, int ncols, int nrows){
 	int n_inner_rows = nrows -2;	
-//   	memcpy(new, current, nrows*ncols*sizeof(unsigned char));
     /*Performs a single step of the update of the map*/
    
+	int left_border_counter = 0;
+	int right_border_counter = 0;
+	int i = 0;
+	int chunk_size = 64*2;
+
 	#if defined(_OPENMP)
-	#pragma omp parallel 
+	#pragma omp parallel firstprivate(left_border_counter, right_border_counter, i) 
 	{    
-		int left_border_counter = 0;
-		int right_border_counter = 0;
-		int i = 0;
-		#pragma omp for 
+		#pragma omp for schedule(static)
+
 		for(int row=1; row <= n_inner_rows; row++){
 			for(int col=1; col < ncols-1; col++){
 				i = row*ncols+ col;
@@ -257,7 +232,7 @@ void static_evolution(unsigned char *restrict current, unsigned char *restrict n
 		}	
 
 		/*Count alive neighbours for left and right
- * 		 border elements */
+  		 border elements */
 		printf("Border element %d=(%d, %d)\n", i, row, col);
 		i = row*ncols;
 		left_border_counter = 0;
