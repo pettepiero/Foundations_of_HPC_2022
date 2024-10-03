@@ -31,7 +31,7 @@ int main(int argc, char** argv)
     
     	int size_of_cluster;
     	int process_rank;
-	int nrows;
+	int nrows = 0;
     	void *map1 = NULL;
     	unsigned char *map1_char = NULL;
     	unsigned char *sub_map = NULL;
@@ -53,25 +53,25 @@ int main(int argc, char** argv)
         2. Read or generate matrix
         3. Calculate the lines per process*/
     	if(process_rank == 0){
-	        #ifndef _OPENMP
-	        	printf("\nExecuting without OPENMP in serial mode.\n");
-	        #endif
+
+        	#ifndef _OPENMP
+      		printf("\nExecuting without OPENMP in serial mode.\n");
+        	#endif
 		printf("Size of MPI cluster: %d\n", size_of_cluster);
-	        command_line_parser(&action, &k, &e, &fname, &n, &s, argc, argv);
+        	command_line_parser(&action, &k, &e, &fname, &n, &s, argc, argv);
 		printf("- Matrix size: %d\n- Number of steps: %d\n- e: %d(0=ORDERED, 1=STATIC)\n- Action: %d (1=INIT, 2=RUN)\n"
 			"- s: %d\n", k, n, e, action, s);
 		nrows = k+2;
 		calculate_rows_per_processor(nrows, size_of_cluster, rows_per_processor, start_indices);
 			
 		set_up_map_variable(action, e, k, &map1, MAXVAL, fname);
-	        map1_char = (unsigned char*)map1;
+        	map1_char = (unsigned char*)map1;
 		
-	        /*if (e == STATIC){
-	            static_set_up_other_map(map1, &map2, k);
-	        } */
+        	/*if (e == STATIC){
+        	    static_set_up_other_map(map1, &map2, k);
+        	} */
 		my_process_rows = rows_per_processor[0];
 		my_process_start_idx = start_indices[0];
-
 		for (int i=1; i<size_of_cluster; i++){
 			MPI_Send(&e, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
 			MPI_Send(&rows_per_processor[i], 1, MPI_INT, i, 0, MPI_COMM_WORLD);
@@ -153,7 +153,7 @@ int main(int argc, char** argv)
 			        		memcpy(sub_map, map1_char, k*my_process_rows);
 
 			        		// Perform evolution in parallel
-			        		static_evolution(sub_map, sub_map_copy, k, my_process_rows);
+			        		static_evolution(sub_map, k, my_process_rows);
     
 			        		// Gathering the results from other processes.
 			        		for (int rank = 1; rank < size_of_cluster; rank++) {
@@ -175,7 +175,7 @@ int main(int argc, char** argv)
 		        		memcpy(sub_map, map1_char, k*my_process_rows);
 		        		
 		        		// Perform evolution in parallel
-		        		static_evolution(sub_map, sub_map_copy, k, my_process_rows);
+		        		static_evolution(sub_map, k, my_process_rows);
 		        		
 		        		// Gathering the results from other processes
 		        		for (int rank = 1; rank < size_of_cluster; rank++) {
@@ -184,6 +184,7 @@ int main(int argc, char** argv)
 		        		memcpy(map1_char, sub_map, k*my_process_rows);
 		       		} 
 			    	sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", n - 1);
+				convert_map_to_char(map1_char, k, nrows);
 			    	write_pgm_image(map1_char, MAXVAL, k, nrows, snapshot_name);
    			}
 		} else {
@@ -193,7 +194,7 @@ int main(int argc, char** argv)
 		    	    	MPI_Recv(sub_map, my_process_rows * k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		
 		    	    	// Perform evolution in parallel
-		    	    	static_evolution(sub_map, sub_map_copy, k, my_process_rows);
+		    	    	static_evolution(sub_map, k, my_process_rows);
 		
 		    	    	// Send only the inner rows back to rank 0
 		    	    	MPI_Send(sub_map + k, (my_process_rows - 2) * k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD);

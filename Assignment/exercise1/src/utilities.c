@@ -92,6 +92,21 @@ void command_line_parser(int *action, int *k, int *e, char **fname, int *n, int 
 	}
 }
 
+void convert_map_to_binary(unsigned char * map, int ncols, int nrows){
+/* Converts char map with values 0 or 255
+ * to values 0 or 1 using right shift */ 
+	for (int i = 0; i < ncols*nrows; i++){
+		map[i] = map[i] >> 7;
+	}
+}
+
+void convert_map_to_char(unsigned char * map, int ncols, int nrows){
+/* Converts char map with values 0 or 1
+ * to values 0 or 255 using right shift */ 
+	for (int i = 0; i < ncols*nrows; i++){
+		map[i] = map[i]*255;
+	}
+}
 
 void set_up_map_variable(int action, int evolution, int k, void **map, int maxval, char *fname){
         /*  Determines if map has to be initialized or read from file.
@@ -133,6 +148,7 @@ void set_up_map_variable(int action, int evolution, int k, void **map, int maxva
         	printf("******************************\nRunning a playground\n******************************\n");
 		read_pgm_image(map, &maxval, &ncols, &nrows, fname);
 		write_pgm_image(*map, maxval, ncols, nrows, fname);
+		convert_map_to_binary(*map, ncols, nrows);
 	}
 	else if(action == INIT){
 		if(fname == NULL){
@@ -158,14 +174,11 @@ void set_up_map_variable(int action, int evolution, int k, void **map, int maxva
         	}
 		
 		#ifdef BLINKER
-        	    #ifdef DEBUG
-        	        printf("Generating blinker\n");
-        	    #endif
-        	    generate_blinker(*map, fname, ncols, nrows);
+        	    	generate_blinker(*map, fname, ncols, nrows);
         	#endif
 
         	#ifndef BLINKER
-		generate_map(*map, fname, 0.1, ncols, nrows, 0);
+			generate_map(*map, fname, 0.1, ncols, nrows, 0);
         	#endif
     	} else {
 	        printf("Error, no action specified in set_up_map_variable\n");
@@ -243,5 +256,44 @@ void delete_pgm_files(const char *folder_path) {
     }
 
     closedir(dir);
+}
+
+unsigned char *generate_blinker(unsigned char *restrict map, char fileName[], const int ncols, const int nrows) {
+    	// Blinker
+    	map[((int)(nrows-1)/2 -1)* ncols + (int)((ncols-1)/2)] = 255;
+    	map[((int)(nrows-1)/2) * ncols + (int)((ncols-1)/2)] = 255;
+    	map[((int)(nrows-1)/2 +1)* ncols + (int)((ncols-1)/2)] = 255;
+
+    	write_pgm_image(map, MAXVAL, ncols, nrows, fileName);
+	convert_map_to_binary(map, ncols, nrows);
+	printf("PGM file created: %s with dimensions %d x %d\n", fileName, nrows, ncols);
+
+    return map;
+}
+
+
+unsigned char *generate_map(unsigned char *restrict map, char* fname, const float probability, const int ncols, const int nrows, const int seed){
+    	if(seed == 0)
+        	srand(time(0));
+    	else
+		srand(seed);
+
+    // populate pixels
+	for (int i=1; i<nrows-1; i++){
+        	for(int j = 0; j <ncols; j++){
+            		float random = (float)rand()/ RAND_MAX;
+            		if (random  < probability)
+                		map[i*ncols + j] = 255;
+            		else
+                		map[i*ncols +j] = 0;
+            	}
+    	}
+
+/* update boundary conditions (first and last rows)*/
+	update_horizontal_edges(map, ncols, nrows);
+    	write_pgm_image(map, MAXVAL, ncols, nrows, fname);
+	convert_map_to_binary(map, ncols, nrows);
+
+    	return map;
 }
 

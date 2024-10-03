@@ -7,21 +7,6 @@
 #include "constants.h"
 #include <omp.h>
 
-
-unsigned char *generate_blinker(unsigned char *restrict map, char fileName[], const int ncols, const int nrows) {
-    	// Blinker
-    	map[((int)(nrows-1)/2 -1)* ncols + (int)((ncols-1)/2)] = 255;
-    	map[((int)(nrows-1)/2) * ncols + (int)((ncols-1)/2)] = 255;
-    	map[((int)(nrows-1)/2 +1)* ncols + (int)((ncols-1)/2)] = 255;
-
-    	write_pgm_image(map, MAXVAL, ncols, nrows, fileName);
-	printf("\n\n");    
-	printf("PGM file created: %s with dimensions %d x %d\n", fileName, nrows, ncols);
-
-    return map;
-}
-
-
 void init_to_zero(unsigned char *restrict map1, const int k)
 {
     #if defined(_OPENMP)
@@ -76,28 +61,6 @@ void print_map_to_file(unsigned char *restrict map, const int ncols, const int n
 
 }
 
-unsigned char *generate_map(unsigned char *restrict map, char* fname, const float probability, const int ncols, const int nrows, const int seed){
-    	if(seed == 0)
-        	srand(time(0));
-    	else
-		srand(seed);
-
-    // populate pixels
-	for (int i=1; i<nrows-1; i++){
-        	for(int j = 0; j <ncols; j++){
-            		float random = (float)rand()/ RAND_MAX;
-            		if (random  < probability)
-                		map[i*ncols + j] = 255;
-            		else
-                		map[i*ncols +j] = 0;
-            	}
-    	}
-
-/* update boundary conditions (first and last rows)*/
-	update_horizontal_edges(map, ncols, nrows);
-    	write_pgm_image(map, MAXVAL, ncols, nrows, fname);
-    	return map;
-}
 
 // A cell that did not change at the last time step, and none of whose neighbors changed,
 // is guaranteed not to change at the current time step as well, so a program that keeps 
@@ -106,10 +69,14 @@ void get_active_zones()
 {}
 
 
+int is_alive(unsigned char *value){
+	return (*value & 0x80) >> (sizeof(unsigned char)*8 -1);
+}
+
 // Defenitely the wrong way to do it but it's a start
 //IDEA: Use a lookup table for the neighbours ? 
 //IDEA: would it be faster to calculate neighbours for more than one position, therefore reducing #function calls?
-
+//NOTE: receives shifted map!! alive neighbours if its MSB is 1, dead if 0
 int count_alive_neighbours(unsigned char *restrict map, const int ncols, const int index)
 {
 	// NOTE: indexes that are passed should not be on the edges!
@@ -122,13 +89,13 @@ int count_alive_neighbours(unsigned char *restrict map, const int ncols, const i
 		int neighbours[] = {index-1, index+1, index-ncols, index+ncols, index-ncols-1, index-ncols+1, index+ncols-1, index+ncols+1};
 
 		for (int i = 0; i < 8; i+=4){
-			    count0 += map[neighbours[i]]; 
-			    count1 += map[neighbours[i+1]]; 
-			    count2 += map[neighbours[i+2]]; 
-			    count3 += map[neighbours[i+3]]; 
+			count0 += is_alive(&map[neighbours[i]]); 
+			count1 += is_alive(&map[neighbours[i+1]]); 
+			count2 += is_alive(&map[neighbours[i+2]]); 
+			count3 += is_alive(&map[neighbours[i+3]]); 
 		}
 		count = count0+count1+count2+count3;
-		return count/255;  /*Will be optimized by -O2 option of gcc into multiplication and shift */
+		return count;  
 	}
 	else {
 		printf("Error in count_alive_neighbours\n");
@@ -138,17 +105,10 @@ int count_alive_neighbours(unsigned char *restrict map, const int ncols, const i
 
 }
 
-// I believe the compiler will optimize this with a ternary operation.
-// I have left it so for the sake of readability
-char update_cell(const int alive_neighbours)
-{
-    if(alive_neighbours < 2 || alive_neighbours > 3)
-        return 0;
-    else
-        return MAXVAL;
+char update_cell(const int alive_neighbours) {
+/* Returns MAXVAL if #alive neighbours is 2 or 3, 0 otherwise */ 
+    return (alive_neighbours == 2 || alive_neighbours == 3) ? MAXVAL : 0;
 }
-
-
 
 void ordered_evolution(unsigned char *restrict map, int ncols, int nrows)
 {
@@ -164,25 +124,38 @@ void ordered_evolution(unsigned char *restrict map, int ncols, int nrows)
 }
 
 
-void static_evolution(unsigned char *restrict current, unsigned char *restrict new, int ncols, int nrows){
-	int n_inner_rows = nrows -2;	
+void shift_old_map(unsigned char *restrict map, const int ncols, const int nrows, const char shift)
+{
+	int i = 0;
+	#pragma omp for schedule(static) private(i)
+	for(int row=0; row < nrows ; row++){
+		for(int col=0; col < ncols; col++){
+			i = row*ncols + col;			
+			map[i] = map[i] << shift;
+		}
+	}
+}
+
+void static_evolution(unsigned char *restrict current, int ncols, int nrows){
     /*Performs a single step of the update of the map*/
-   
+	int n_inner_rows = nrows -2;	
 	int left_border_counter = 0;
 	int right_border_counter = 0;
 	int i = 0;
-	int chunk_size = 64*2;
-
+	/* Shift old values of map to MSB 
+ 	*  this means that 0 becomes 0 and 1 becomes 2^(shift)128 */
+	char shift = sizeof(unsigned char)*8 -1;
 	#if defined(_OPENMP)
 	#pragma omp parallel firstprivate(left_border_counter, right_border_counter, i) 
-	{    
-		#pragma omp for schedule(static)
+	{ 
+		shift_old_map(current, ncols, nrows, shift);	
 
+		#pragma omp for schedule(static)
 		for(int row=1; row <= n_inner_rows; row++){
 			for(int col=1; col < ncols-1; col++){
 				i = row*ncols+ col;
 				int alive_counter = count_alive_neighbours(current, ncols, i);
-				new[i] = update_cell(alive_counter);
+				current[i] += update_cell(alive_counter);
 			}
 			/*Count alive neighbours for left and right
   			 border elements */
@@ -190,31 +163,31 @@ void static_evolution(unsigned char *restrict current, unsigned char *restrict n
 			left_border_counter = 0;
 			right_border_counter = 0;
 			/* left neighbours of cell on left edge */
-			left_border_counter += current[i-1];	
-			left_border_counter += current[i+ncols-1];
-			left_border_counter += current[i+2*ncols-1];
+			left_border_counter += is_alive(&current[i-1]);	
+			left_border_counter += is_alive(&current[i+ncols-1]);
+			left_border_counter += is_alive(&current[i+2*ncols-1]);
 			/* top and bottom neighbours of cell on left edge */	
-			left_border_counter += current[i-ncols];
-			left_border_counter += current[i+ncols];
+			left_border_counter += is_alive(&current[i-ncols]);
+			left_border_counter += is_alive(&current[i+ncols]);
 			/* right neighbours of cell on left edge */
-			left_border_counter += current[i-ncols+1];
-			left_border_counter += current[i+1];
-			left_border_counter += current[i+ncols+1];
-			new[i] = update_cell(left_border_counter/255);
+			left_border_counter += is_alive(&current[i-ncols+1]);
+			left_border_counter += is_alive(&current[i+1]);
+			left_border_counter += is_alive(&current[i+ncols+1]);
+			current[i] += update_cell(left_border_counter);
 
 			i += ncols -1;
 			/* right neighbours of cell on right edge */
-			right_border_counter += current[i-2*ncols+1];	
-			right_border_counter += current[i-ncols+1];	
-			right_border_counter += current[i+1];	
+			right_border_counter += is_alive(&current[i-2*ncols+1]);	
+			right_border_counter += is_alive(&current[i-ncols+1]);	
+			right_border_counter += is_alive(&current[i+1]);	
 			/* top and bottom neighbours of cell on right edge */
-			right_border_counter += current[i-ncols];	
-			right_border_counter += current[i+ncols];	
+			right_border_counter += is_alive(&current[i-ncols]);	
+			right_border_counter += is_alive(&current[i+ncols]);	
 			/* left neighbouts of cell on right edge */
-			right_border_counter += current[i-ncols-1];	
-			right_border_counter += current[i-1];
-			right_border_counter += current[i+ncols-1];
-			new[i] = update_cell(right_border_counter/255);
+			right_border_counter += is_alive(&current[i-ncols-1]);	
+			right_border_counter += is_alive(&current[i-1]);
+			right_border_counter += is_alive(&current[i+ncols-1]);
+			current[i] += update_cell(right_border_counter);
 		}
 	}
 	#else
@@ -228,42 +201,40 @@ void static_evolution(unsigned char *restrict current, unsigned char *restrict n
 		for(int col=1; col < ncols-1; col++){
 			i = row*ncols + col;
 			alive_counter = count_alive_neighbours(current, ncols, i);
-			new[i] = update_cell(alive_counter);
+			current[i] += update_cell(alive_counter);
 		}	
 
 		/*Count alive neighbours for left and right
   		 border elements */
-		printf("Border element %d=(%d, %d)\n", i, row, col);
 		i = row*ncols;
 		left_border_counter = 0;
 		right_border_counter = 0;
 		/* left neighbours of cell on left edge */
-		left_border_counter += current[i-1];	
-		left_border_counter += current[i+ncols-1];	
-		left_border_counter += current[i+2*ncols-1];
+		left_border_counter += is_alive(is_alive(&&current[i-1]));	
+		left_border_counter += is_alive(&current[i+ncols-1]);
+		left_border_counter += is_alive(&current[i+2*ncols-1]);
 		/* top and bottom neighbours of cell on left edge */	
-		left_border_counter += current[i-ncols];	
-		left_border_counter += current[i+ncols];	
+		left_border_counter += is_alive(&current[i-ncols]);
+		left_border_counter += is_alive(&current[i+ncols]);
 		/* right neighbours of cell on left edge */
-		left_border_counter += current[i-ncols+1];	
-		left_border_counter += current[i+1];
-		left_border_counter += current[i+ncols+1];
-		new[i] = update_cell(left_border_counter);
+		left_border_counter += is_alive(&current[i-ncols+1]);
+		left_border_counter += is_alive(&current[i+1]);
+		left_border_counter += is_alive(&current[i+ncols+1]);
+		current[i] += update_cell(left_border_counter);
 
 		i += ncols -1;
 		/* right neighbours of cell on right edge */
-		right_border_counter += current[i-2*ncols+1];	
-		right_border_counter += current[i-ncols+1];	
-		right_border_counter += current[i+1];	
+		right_border_counter += is_alive(&current[i-2*ncols+1]);	
+		right_border_counter += is_alive(&current[i-ncols+1]);	
+		right_border_counter += is_alive(&current[i+1]);	
 		/* top and bottom neighbours of cell on right edge */
-		right_border_counter += current[i-ncols];	
-		right_border_counter += current[i+ncols];	
+		right_border_counter += is_alive(&current[i-ncols]);	
+		right_border_counter += is_alive(&current[i+ncols]);	
 		/* left neighbouts of cell on right edge */
-		right_border_counter += current[i-ncols-1];	
-		right_border_counter += current[i-1];
-		right_border_counter += current[i+ncols-1];
-		new[i] = update_cell(right_border_counter);
+		right_border_counter += is_alive(&current[i-ncols-1]);	
+		right_border_counter += is_alive(&current[i-1]);
+		right_border_counter += is_alive(&current[i+ncols-1]);
+		current[i] += update_cell(right_border_counter);
 	}
 	#endif
-	memcpy(current, new, ncols*nrows*sizeof(unsigned char));
 }
