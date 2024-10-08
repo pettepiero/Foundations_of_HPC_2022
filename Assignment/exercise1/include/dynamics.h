@@ -17,7 +17,6 @@ void            init_to_zero(unsigned char *restrict map1, const int k);
 void 		print_map_to_file(unsigned char *restrict map, const int ncols, const int nrows, const char fileName[]);
 void 		shift_old_map(unsigned char *restrict map, const int ncols, const int nrows, const char shift);
 int 		is_alive(unsigned char *value);
-
-
+void 		split_initial_matrix(unsigned char *restrict map1, const Env env, const int start_indices[]);
 
 #endif // DYNAMICS_H

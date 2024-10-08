@@ -13,74 +13,81 @@ Functions that make gol.c file cleaner and improve its readability */
 #include <dirent.h>
 #include <unistd.h>
 
-void command_line_parser(int *action, int *k, int *e, char **fname, int *n, int *s, int argc, char **argv){
-    *action = 0;
-    char *optstring = "irk:e:f:n:s:";
+void command_line_parser(Env *env, char **fname, int argc, char **argv){
+	/* Setting default values first */
+	env->action = 0;
+	env->k = K_DFLT;
+	env->e = STATIC;
+	env->n = N_STEPS;
+	env->s = 1;
 
-    int c;
-    while ((c = getopt(argc, argv, optstring)) != -1) {
-        switch(c) {
+    	char *optstring = "irk:e:f:n:s:";
+
+    	int c;
+	while ((c = getopt(argc, argv, optstring)) != -1) {
+        	switch(c) {
     
-        case 'i':
-        	*action = INIT;
-	break;
-        
-        case 'r':
-        	*action = RUN;
-	break;
-        
-        case 'k':
-	        *k = atoi(optarg); 
-	        if ((*k <= 0) || (*k >= 100000)){
-		        printf("Error: matrix dimension k must be greater than 0 and smaller than 100000\n");
-	        	exit(1);
-	        }
-		printf("Selected matrix dimension %d\n", *k);
-        break;
+        		case 'i':
+        			env->action = INIT;
+			break;
+        		
+        		case 'r':
+        			env->action = RUN;
+			break;
+        		
+        		case 'k':
+			        env->k = atoi(optarg); 
+				if ((env->k <= 0) || (env->k >= 100000)){
+				        printf("Error: matrix dimension k must be greater than 0 and smaller than 100000\n");
+			        	exit(1);
+			        }
+				env->nrows = env->k+2;
+				printf("Selected matrix dimension %d\n", env->k);
+        		break;
 
-        case 'e':
-	        *e = atoi(optarg); 
-	        if(*e == STATIC)
-			printf("Using static evolution\n");
-	        else if(*e == ORDERED)
-	            	printf("Using ordered evolution\n");
-	        else {
-	            	printf("Unknown evolution type\n");
-	            	exit(1);
-	        }
-        break;
+        		case 'e':
+			        env->e = atoi(optarg); 
+			        if(env->e == STATIC)
+					printf("Using static evolution\n");
+			        else if(env->e == ORDERED)
+			            	printf("Using ordered evolution\n");
+			        else {
+			            	printf("Unknown evolution type\n");
+			            	exit(1);
+			        }
+        		break;
 
-        case 'f':
-        	*fname = (char*)malloc( strlen(optarg)+1 );
-        	if (*fname == NULL)
-        	{
-        	    printf("Error: Could not allocate memory for file name\n");
-        	    exit(1);
+        		case 'f':
+        			*fname = (char*)malloc( strlen(optarg)+1 );
+        			if (*fname == NULL)
+        			{
+        			    printf("Error: Could not allocate memory for file name\n");
+        			    exit(1);
+        			}
+				strcpy(*fname, optarg);
+        		break;
+
+        		case 'n':
+        			env->n = atoi(optarg);
+        			if (env->n <= 0)
+        			{
+        			    printf("Error: number of steps n must be greater than 0 \n");
+        			    exit(1);
+        			}
+        		break;
+
+        		case 's':
+        			env->s = atoi(optarg);
+			break;
+
+        		default :
+       				printf("argument -%c not known\n", c ); 
+        			exit(1);
+        		break;
         	}
-		strcpy(*fname, optarg);
-        break;
-
-        case 'n':
-        	*n = atoi(optarg);
-        	if (*n <= 0)
-        	{
-        	    printf("Error: number of steps n must be greater than 0 \n");
-        	    exit(1);
-        	}
-        break;
-
-        case 's':
-        	*s = atoi(optarg);
-	break;
-
-        default :
-       		printf("argument -%c not known\n", c ); 
-        	exit(1);
-        break;
-        }
     }
 
-	if((*action != RUN) && (*action != INIT)){
+	if((env->action != RUN) && (env->action != INIT)){
 		printf("No action specified\n");
 	        printf("Possible actions:\n"
 	               "r - Run a world\n"
@@ -88,8 +95,20 @@ void command_line_parser(int *action, int *k, int *e, char **fname, int *n, int 
 	               "Evolution types:\n"
 	               "e 0 - Ordered evolution\n"
 	               "e 1 - Static evolution\n\n");
-	        exit(1);
+		printf("Choosing INIT by default\n");
+		env->action = INIT;
 	}
+}
+
+
+
+void initialize_env_variable(Env *env){
+	env->action = INIT;
+	env->k = K_DFLT;
+	env->e = STATIC;
+	env->n = N_STEPS;
+	env->s = 1;
+	env->nrows = env->k+2;
 }
 
 void convert_map_to_binary(unsigned char * map, int ncols, int nrows){
@@ -210,12 +229,24 @@ void print_map(int process_rank, int ncols, int rows_to_receive, unsigned char *
 		}	
 }
 
-void calculate_rows_per_processor(int nrows, int nprocessors, int *rows_per_processor, int *start_indices){
-	int ideal_nrows = nrows/nprocessors;
-	int remainder = nrows%nprocessors;
+void print_env(Env env){
+	printf("action = %d\n", env.action);
+	printf("k = %d\n", env.k);
+	printf("e = %d\n", env.e);
+	printf("n= %d\n", env.n);
+	printf("s = %d\n", env.s);
+	printf("size_of_cluster = %d\n", env.size_of_cluster);
+	printf("nrows = %d\n", env.nrows);
+	printf("my_process_rows = %d\n", env.my_process_rows);
+	printf("my_process_start_idx = %d\n", env.my_process_start_idx);
+}
+
+void calculate_rows_per_processor(Env env, int *rows_per_processor, int* start_indices){
+	int ideal_nrows = env.nrows/env.size_of_cluster;
+	int remainder = env.nrows%env.size_of_cluster;
 	int start_row = 0;
 
-	for (int i=0; i<nprocessors; i++){
+	for (int i=0; i<env.size_of_cluster; i++){
 		rows_per_processor[i] = ideal_nrows + (i < remainder? 1 : 0);
 		start_indices[i] = start_row;
 
@@ -223,8 +254,8 @@ void calculate_rows_per_processor(int nrows, int nprocessors, int *rows_per_proc
 			start_indices[i]--;
 			rows_per_processor[i]++;
 		}
-		if(i == nprocessors-1){
-			rows_per_processor[i] = nrows -1 - start_indices[i];
+		if(i == env.size_of_cluster-1){
+			rows_per_processor[i] = env.nrows -1 - start_indices[i];
 		}
 		start_row = start_indices[i] + rows_per_processor[i]-1;
 	}

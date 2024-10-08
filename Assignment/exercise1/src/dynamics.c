@@ -6,6 +6,7 @@
 #include "read_write_pgm_image.h"
 #include "constants.h"
 #include <omp.h>
+//#include <mpi.h>
 
 void init_to_zero(unsigned char *restrict map1, const int k)
 {
@@ -238,3 +239,37 @@ void static_evolution(unsigned char *restrict current, int ncols, int nrows){
 	}
 	#endif
 }
+
+
+//void split_initial_matrix(unsigned char* restrict map1, const Env env, const int start_indices[]){
+///* Allocates appropriate memory in each MPI process and
+// * Splits initial matrix bewteen MPI processes
+// */
+//
+//	//Allocate space for local maps
+//	unsigned char *sub_map = (unsigned char*)malloc(env.my_process_rows*env.k*sizeof(unsigned char));
+//	unsigned char *sub_map_copy = (unsigned char*)malloc(env.my_process_rows*env.k*sizeof(unsigned char));
+//		
+//	if (sub_map == NULL || sub_map_copy == NULL){
+//		printf("Process %d error: Could not allocate memory for local maps\n", env.process_rank);
+//		exit(1);
+//	}
+//
+//	/* Initialize local sub matrices with OpenMP, to warm up the data properly*/
+//	#pragma omp parallel for
+//	for (int i=0; i<env.my_process_rows*env.k; i++){
+//		sub_map[i] = 0;	
+//		sub_map_copy[i]=0;
+//	}	
+//	
+//	if (env.process_rank == 0){
+//		/* Sending initial map to every MPI process */
+//		for (int rank = 1; rank < env.size_of_cluster; rank++) {
+//			MPI_Send(map1 + start_indices[rank]*env.k, env.rows_per_processor[rank]*env.k, MPI_UNSIGNED_CHAR, rank, 0, MPI_COMM_WORLD);
+//		}
+//	} else {
+//		MPI_Recv(sub_map, env.my_process_rows * env.k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+//	}
+//		/* Each process now has its copy of the submap */
+//
+//}

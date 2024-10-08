@@ -4,6 +4,7 @@
 #include "constants.h"
 #include "read_write_pgm_image.h"
 #include <stdlib.h>
+#include <unistd.h>
 
 int nrows = K_DFLT +2;
 int ncols = K_DFLT; 
@@ -28,9 +29,89 @@ void setUp()
 
 void tearDown()
 {
-    	free(map);
-    	//delete pgm files
+	if (map) {
+		free(map);
+		map = NULL;
+	}
 	delete_pgm_files("./pgm/"); 
+}
+
+
+/****************************************************************/
+/*		testing command_line_parser 			*/
+
+void test_command_line_parser1(void) {
+		optind = 1;
+    		char *fname = NULL;
+    		Env env;
+		fname = NULL;
+    		char *argv[] = { "program_name", "-i" };
+    		int argc = 2;
+    		command_line_parser(&env, &fname, argc, argv);
+    		TEST_ASSERT_EQUAL_MESSAGE(1, env.action, "Test 1");
+    		TEST_ASSERT_EQUAL_MESSAGE(K_DFLT, env.k, "Test 1");
+    		TEST_ASSERT_EQUAL_MESSAGE(STATIC, env.e, "Test 1");
+    		TEST_ASSERT_EQUAL_MESSAGE(N_STEPS, env.n, "Test 1");
+    		TEST_ASSERT_EQUAL_MESSAGE(1, env.s, "Test 1");
+    		TEST_ASSERT_NULL_MESSAGE(fname, "Test 1");  // Filename should not be allocated
+}
+void test_command_line_parser2(void){
+		optind = 1;
+    		char *fname = NULL;
+    		Env env;
+		fname = NULL;
+    		char *argv2[] = { "program_name", "-r" };
+    		int argc2 = 2;
+    		command_line_parser(&env, &fname, argc2, argv2);
+    		TEST_ASSERT_EQUAL_MESSAGE(RUN, env.action, "Test 2");
+}
+void test_command_line_parser3(void){
+		optind = 1;
+    		char *fname = NULL;
+    		Env env;
+		fname = NULL;
+    		char *argv3[] = { "program_name", "-i", "-k", "50" };
+    		int argc3 = 4;
+    		command_line_parser(&env, &fname, argc3, argv3);
+    		TEST_ASSERT_EQUAL_MESSAGE(50, env.k, "Test 3");
+}
+void test_command_line_parser4(void){
+		optind = 1;
+    		char *fname = NULL;
+    		Env env;
+		fname = NULL;
+    		char *argv4[] = { "program_name", "-i", "-e", "1" };  // 1 is STATIC 
+    		int argc4 = 4;
+    		command_line_parser(&env, &fname, argc4, argv4);
+    		TEST_ASSERT_EQUAL_MESSAGE(STATIC, env.e, "Test 4");
+}
+void test_command_line_parser5(void){
+		optind = 1;
+    		char *fname = NULL;
+    		Env env;
+		fname = NULL;
+    		char *argv5[] = { "program_name", "-i", "-f", "data.txt" };
+    		int argc5 = 4;
+    		command_line_parser(&env, &fname, argc5, argv5);
+    		TEST_ASSERT_NOT_NULL_MESSAGE(fname, "Test 5");
+    		TEST_ASSERT_EQUAL_STRING_MESSAGE("data.txt", fname, "Test 5");
+    		free(fname);
+		fname = NULL;
+}
+
+
+/*	finished testing command_line_parser				*/
+/************************************************************************/
+
+void test_initialize_env_variable(){
+	Env env;
+	initialize_env_variable(&env);
+	TEST_ASSERT_EQUAL_INT_MESSAGE(env.action, INIT, "Test on action");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(env.k, K_DFLT, "Test on k");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(env.e, STATIC, "Test on e");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(env.n, N_STEPS, "Test on n");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(env.s, 1, "Test on s");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(env.nrows, (env.k) +2, "Test on nrows");
 }
 
 void test_update_horizontal_edges()
@@ -262,7 +343,6 @@ void test_is_alive()
 //    	//This test is done checking step from known configuration
 //    	map = (unsigned char*)calloc(srows*scols, sizeof(unsigned char));
 //    	generate_map(map, "./pgm/seed10test.pgm", 0.2, scols, srows, 10);
-//	printf("Inside test_static_evolution():\n");
 //	//print_map(0, scols, srows, map);
 // /* Generated map:                                                                                                                    
 //   0   0   0   1   0   0   0   0   1   0
@@ -294,7 +374,6 @@ void test_static_evolution()
     	//This test is done checking step from known configuration
     	map = (unsigned char*)calloc(srows*scols, sizeof(unsigned char));
     	generate_map(map, "./pgm/seed10test.pgm", 0.2, scols, srows, 10);
-	printf("Inside test_static_evolution():\n");
 	//print_map(0, scols, srows, map);
  /* Generated map:                                                                                                                    
    0   0   0   1   0   0   0   0   1   0
@@ -367,6 +446,12 @@ int main(void)
     	RUN_TEST(test_static_evolution);
     	RUN_TEST(test_convert_map_to_binary);
     	RUN_TEST(test_convert_map_to_char);
+	RUN_TEST(test_command_line_parser1);
+	RUN_TEST(test_command_line_parser2);
+	RUN_TEST(test_command_line_parser3);
+	RUN_TEST(test_command_line_parser4);
+	RUN_TEST(test_command_line_parser5);
+	RUN_TEST(test_initialize_env_variable);
     	UNITY_END();
 
     	return 0;

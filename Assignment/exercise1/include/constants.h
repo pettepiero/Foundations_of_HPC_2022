@@ -17,14 +17,17 @@
 #define N_STEPS 100
 #define MAXVAL 1 /*1 -> white, 0 -> black*/
 
-extern int 	action;
-extern int 	k;
-extern int 	e;
-extern int 	n;
-extern int 	s;
-extern char *fname;
-extern int 	maxval;
-
+typedef struct {
+	int   	action;
+	int   	k;
+	int   	e;
+	int   	n;
+	int   	s;
+    	int 	size_of_cluster;
+	int 	nrows;
+	int	my_process_rows;
+	int 	my_process_start_idx;
+} Env;
 
 #if defined(_OPENMP)
 #define CPU_TIME ({struct  timespec ts; clock_gettime( CLOCK_REALTIME, &ts ),\
