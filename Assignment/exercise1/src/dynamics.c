@@ -6,7 +6,7 @@
 #include "read_write_pgm_image.h"
 #include "constants.h"
 #include <omp.h>
-//#include <mpi.h>
+#include <mpi.h>
 
 void init_to_zero(unsigned char *restrict map1, const int k)
 {
@@ -137,6 +137,19 @@ void shift_old_map(unsigned char *restrict map, const int ncols, const int nrows
 	}
 }
 
+void mask_MSB(unsigned char *restrict map, const int ncols, const int nrows)
+{	
+	/* Sets MSB of each element of map to 0 */
+	int i = 0;
+	#pragma omp for schedule(static) private(i)
+	for(int row=0; row < nrows ; row++){
+		for(int col=0; col < ncols; col++){
+			i = row*ncols + col;			
+			map[i] &= 0x7F;
+		}
+	}
+}
+
 void static_evolution(unsigned char *restrict current, int ncols, int nrows){
     /*Performs a single step of the update of the map*/
 	int n_inner_rows = nrows -2;	
@@ -190,6 +203,10 @@ void static_evolution(unsigned char *restrict current, int ncols, int nrows){
 			right_border_counter += is_alive(&current[i+ncols-1]);
 			current[i] += update_cell(right_border_counter);
 		}
+
+		/* Keep only LSB */
+		mask_MSB(current, ncols, nrows);
+
 	}
 	#else
 
@@ -240,6 +257,17 @@ void static_evolution(unsigned char *restrict current, int ncols, int nrows){
 	#endif
 }
 
+
+void gather_submaps(unsigned char* restrict map, const Env env, const int *start_indices, const int *rows_per_processor){
+	for(int rank=1; rank < env.size_of_cluster; rank++){
+		MPI_Recv(map + (start_indices[rank]+1)*env.k, (rows_per_processor[rank]-2)*env.k, MPI_UNSIGNED_CHAR, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	}
+}
+
+
+void send_submaps(unsigned char* restrict map, const Env env, const int *rows_per_processor, const int process_rank){
+	MPI_Send(map +env.k, (env.my_process_rows-2)*env.k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD);
+}
 
 //void split_initial_matrix(unsigned char* restrict map1, const Env env, const int start_indices[]){
 ///* Allocates appropriate memory in each MPI process and

@@ -16,7 +16,10 @@ void		update_horizontal_edges(unsigned char *restrict map, const int ncols, cons
 void            init_to_zero(unsigned char *restrict map1, const int k);
 void 		print_map_to_file(unsigned char *restrict map, const int ncols, const int nrows, const char fileName[]);
 void 		shift_old_map(unsigned char *restrict map, const int ncols, const int nrows, const char shift);
+void 		mask_MSB(unsigned char *restrict map, const int ncols, const int nrows);
 int 		is_alive(unsigned char *value);
 void 		split_initial_matrix(unsigned char *restrict map1, const Env env, const int start_indices[]);
+void 		gather_submaps(unsigned char* restrict map, const Env env, const int *start_indices, const int *rows_per_processor);
+void 		send_submaps(unsigned char* restrict map, const Env env, const int *rows_per_processor, const int process_rank);
 
 #endif // DYNAMICS_H

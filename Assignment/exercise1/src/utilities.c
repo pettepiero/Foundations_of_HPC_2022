@@ -100,7 +100,26 @@ void command_line_parser(Env *env, char **fname, int argc, char **argv){
 	}
 }
 
-
+int calculate_next_processor(int process_num, int size_of_cluster){
+	if (process_num >= size_of_cluster || process_num < 0){
+		printf("Error in 'calculate_next_processor': invalid process_num: %d\n", process_num);
+		return size_of_cluster;
+	}
+	if (process_num != size_of_cluster -1)
+		return process_num+1;
+	else 
+		return 0;
+}
+int calculate_prev_processor(int process_num, int size_of_cluster){
+	if (process_num >= size_of_cluster){
+		printf("Error in 'calculate_prev_processor': invalid process_num: %d\n", process_num);
+		return size_of_cluster;
+	}
+	if (process_num != 0)
+		return process_num-1;
+	else 
+		return size_of_cluster -1;
+}
 
 void initialize_env_variable(Env *env){
 	env->action = INIT;

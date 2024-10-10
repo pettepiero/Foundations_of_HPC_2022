@@ -4,6 +4,8 @@
 #include "dynamics.h"
 
 void 		command_line_parser(Env *env, char **fname, int argc, char **argv);
+int 		calculate_next_processor(int process_num, int size_of_cluster);
+int 		calculate_prev_processor(int process_num, int size_of_cluster);
 void 		initialize_env_variable(Env *env);
 void 		set_up_map_variable(int action, int evolution, int size, void **map, int maxval, char file[]);
 void 		static_set_up_other_map(unsigned char *map1, void **map2, int size);
