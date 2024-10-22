@@ -1,14 +1,14 @@
 #!/bin/bash
 #SBATCH -A dssc
 #SBATCH --job-name=mpi-scal
-#SBATCH --partition=THIN
-#SBATCH --nodelist=thin[005-008]
+#SBATCH --partition=EPYC
+#SBATCH --nodelist=epyc[001-004]
 #SBATCH --time=02:00:0
 #SBATCH --ntasks-per-node=2 
-#SBATCH --cpus-per-task=12
+#SBATCH --cpus-per-task=64
 #SBATCH --nodes=4
 #SBATCH --exclusive
-#SBATCH --output=./outputs/slurm-%j-mpi-scal.txt
+#SBATCH --output=./outputs/slurm-%j-mpi-scal-epyc.txt
 module load openMPI/4.1.6/gnu/14.2.1
 # 0 -> ordered, 1 -> static
 evolution=1
@@ -28,7 +28,7 @@ mapping="socket"
 echo "mapping by $mapping"
 export OMP_PLACES=cores
 export OMP_PROC_BIND=close
-export OMP_NUM_THREADS=12
+export OMP_NUM_THREADS=64
 
 echo "dim,mpi-tasks,time" > "$output_file"
 for dim in 2000 4000 8000 16000 20000
@@ -40,7 +40,7 @@ do
 		    
 	        time=$(echo "$output" | tail -n 1)
 	        echo "$dim,$ntasks,$time" >> "$output_file"
-	        echo "$output" >> "./outputs/slurm-$SLURM_JOB_ID-serial.txt"
+	        echo "$output" >> "./outputs/slurm-$SLURM_JOB_ID.txt"
 		echo "Finished $ntasks tasks run"
 	done
 done
