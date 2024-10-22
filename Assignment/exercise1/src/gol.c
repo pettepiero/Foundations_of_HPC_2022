@@ -18,7 +18,14 @@ double  ex_time;
 
 int main(int argc, char** argv)
 {
-	MPI_Init(&argc, &argv);
+	int mpi_provided_thread_level;
+
+	MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &mpi_provided_thread_level);
+	if ( mpi_provided_thread_level < MPI_THREAD_FUNNELED ) {
+		printf("a problem arise when asking for MPI_THREAD_FUNNELED level\n");
+		MPI_Finalize();
+		exit( 1 );
+	}
 
 	Env env;
 	int process_rank; 
@@ -70,40 +77,27 @@ int main(int argc, char** argv)
 		printf("Size of MPI cluster: %d\n", env.size_of_cluster);
 		initialize_env_variable(&env);
         	command_line_parser(&env, &fname, argc, argv);
-		printf("- Matrix size: %d\n- Number of steps: %d\n- e: %d(0=ORDERED, 1=STATIC)\n- Action: %d (1=INIT, 2=RUN)\n"
-			"- s: %d\n", env.k, env.n, env.e, env.action, env.s);
+		printf("- Matrix size: %d x %d \n- Number of steps: %d\n- e: %d(0=ORDERED, 1=STATIC)\n- Action: %d (1=INIT, 2=RUN)\n"
+			"- s: %d\n", env.k, env.k, env.n, env.e, env.action, env.s);
 		calculate_rows_per_processor(env, rows_per_processor, start_indices);
 		env.my_process_rows = rows_per_processor[process_rank];
 		set_up_map_variable(env.action, env.e, env.k, &map1, MAXVAL, fname);
         	map1_char = (unsigned char*)map1;
-		
-		
 
 		for (int i=1; i<env.size_of_cluster; i++){
-	/*		MPI_Send(&env.e, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
-			MPI_Send(&env.rows_per_processor[i], 1, MPI_INT, i, 0, MPI_COMM_WORLD);
-			MPI_Send(&env.start_indices[i], 1, MPI_INT, i, 0, MPI_COMM_WORLD); 
-			MPI_Send(&env.k, 1, MPI_INT, i, 0, MPI_COMM_WORLD); 
-			MPI_Send(&env.n, 1, MPI_INT, i, 0, MPI_COMM_WORLD); */
 			MPI_Send(&env, 1, mpi_env_type, i, 0, MPI_COMM_WORLD);
 			MPI_Send(rows_per_processor, env.size_of_cluster, MPI_INT, i, 0, MPI_COMM_WORLD);
 			MPI_Send(start_indices, env.size_of_cluster, MPI_INT, i, 0, MPI_COMM_WORLD);
 		}
 		//deleting old snapshots
 		delete_pgm_files(snapshot_folder_path); 
-		
+			
     	} else if (process_rank != 0){
 		MPI_Recv(&env, 1, mpi_env_type, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		MPI_Recv(&rows_per_processor, env.size_of_cluster, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		MPI_Recv(&start_indices, env.size_of_cluster, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		env.my_process_rows = rows_per_processor[process_rank];
-/*		MPI_Recv(&env.e, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		MPI_Recv(&env.my_process_rows, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
-		MPI_Recv(&env.my_process_start_idx, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
-		MPI_Recv(&env.k, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
-		MPI_Recv(&env.n, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	*/
 	}
-	printf("Hello, I'm process %d and I will work on lines %d to %d of the map\n", process_rank, start_indices[process_rank], start_indices[process_rank] + env.my_process_rows -1);
 
     	if ((env.e == ORDERED) && (process_rank ==0)){
 		tstart= CPU_TIME;
@@ -137,7 +131,9 @@ int main(int argc, char** argv)
 		}
 
 		/* Initialize local sub matrices with OpenMP, to warm up the data properly*/
-		#pragma omp parallel for
+		#ifdef _OPENMP
+			#pragma omp parallel for
+		#endif
 		for (int i=0; i<env.my_process_rows*env.k; i++){
 			sub_map[i] = 0;	
 		}	

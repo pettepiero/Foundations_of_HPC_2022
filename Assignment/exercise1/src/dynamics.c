@@ -10,10 +10,11 @@
 
 void init_to_zero(unsigned char *restrict map1, const int k)
 {
-    #if defined(_OPENMP)
+    #ifdef _OPENMP
         // Touching the maps in the different threads,
         // so that each cache will be warmed-up appropriately
         #pragma omp parallel
+    #endif
         {
             for (int i=0; i<k; i++){
                 for(int j = 0; j <k; j++){
@@ -21,16 +22,11 @@ void init_to_zero(unsigned char *restrict map1, const int k)
                 }
             }
         }
-        #else
-            for (int i=0; i<k; i++){
-                for(int j = 0; j<k; j++)
-                    map1[i*k +j] = 0;
-            }
-    #endif
 }
 
 void update_horizontal_edges(unsigned char *restrict map, const int ncols, const int nrows)
 {
+    if (nrows < 3) return; // Sanity check for small matrices
     // update top and bottom edges
     for (int i=0; i<ncols; i++)
     {
@@ -113,22 +109,29 @@ char update_cell(const int alive_neighbours) {
 
 void ordered_evolution(unsigned char *restrict map, int ncols, int nrows)
 {
-    	for (int row = 1; row < nrows-1; row++)
-    	{
-    	    for (int col = 0; col < ncols; col++)
-    	    {
-    	        int i = row*ncols+ col;
-    	        int alive_counter = count_alive_neighbours(map, ncols, i);
-    	        map[i] = update_cell(alive_counter);
-    	    }
-    	}
+	int i = 0;
+	int alive_counter = 0;
+    	#ifdef _OPENMP
+		#pragma omp parallel for schedule(static) firstprivate(i, alive_counter)
+	#endif
+	    	for (int row = 1; row < nrows-1; row++)
+	    	{
+	    	    for (int col = 0; col < ncols; col++)
+	    	    {
+	    	        i = row*ncols+ col;
+	    	        alive_counter = count_alive_neighbours(map, ncols, i);
+	    	        map[i] = update_cell(alive_counter);
+	    	    }
+	    	}
 }
 
 
 void shift_old_map(unsigned char *restrict map, const int ncols, const int nrows, const char shift)
 {
 	int i = 0;
-	#pragma omp for schedule(static) private(i)
+	#ifdef _OPENMP
+		#pragma omp for schedule(static) private(i)
+	#endif
 	for(int row=0; row < nrows ; row++){
 		for(int col=0; col < ncols; col++){
 			i = row*ncols + col;			
@@ -141,7 +144,9 @@ void mask_MSB(unsigned char *restrict map, const int ncols, const int nrows)
 {	
 	/* Sets MSB of each element of map to 0 */
 	int i = 0;
-	#pragma omp for schedule(static) private(i)
+	#ifdef _OPENMP
+		#pragma omp for schedule(static) private(i)
+	#endif
 	for(int row=0; row < nrows ; row++){
 		for(int col=0; col < ncols; col++){
 			i = row*ncols + col;			
@@ -152,20 +157,24 @@ void mask_MSB(unsigned char *restrict map, const int ncols, const int nrows)
 
 void static_evolution(unsigned char *restrict current, int ncols, int nrows){
     /*Performs a single step of the update of the map*/
-	int n_inner_rows = nrows -2;	
+	//int n_inner_rows = nrows -2;	
 	int left_border_counter = 0;
 	int right_border_counter = 0;
 	int i = 0;
 	/* Shift old values of map to MSB 
  	*  this means that 0 becomes 0 and 1 becomes 2^(shift)128 */
 	char shift = sizeof(unsigned char)*8 -1;
-	#if defined(_OPENMP)
-	#pragma omp parallel firstprivate(left_border_counter, right_border_counter, i) 
+	#ifdef _OPENMP
+		#pragma omp parallel firstprivate(left_border_counter, right_border_counter, i) 
+	#endif
 	{ 
 		shift_old_map(current, ncols, nrows, shift);	
 
-		#pragma omp for schedule(static)
-		for(int row=1; row <= n_inner_rows; row++){
+		#ifdef _OPENMP
+			#pragma omp for schedule(static)
+		#endif	
+		//for(int row=1; row <= n_inner_rows; row++){
+		for(int row=1; row < nrows -1 ; row++){
 			for(int col=1; col < ncols-1; col++){
 				i = row*ncols+ col;
 				int alive_counter = count_alive_neighbours(current, ncols, i);
@@ -206,55 +215,8 @@ void static_evolution(unsigned char *restrict current, int ncols, int nrows){
 
 		/* Keep only LSB */
 		mask_MSB(current, ncols, nrows);
-
 	}
-	#else
-
-	int alive_counter = 0;
-	int left_border_counter = 0;
-	int right_border_counter = 0;
-	int i = 0;
-		/* Inner matrix loop */
-	for(int row=1; row <= n_inner_rows; row++){
-		for(int col=1; col < ncols-1; col++){
-			i = row*ncols + col;
-			alive_counter = count_alive_neighbours(current, ncols, i);
-			current[i] += update_cell(alive_counter);
-		}	
-
-		/*Count alive neighbours for left and right
-  		 border elements */
-		i = row*ncols;
-		left_border_counter = 0;
-		right_border_counter = 0;
-		/* left neighbours of cell on left edge */
-		left_border_counter += is_alive(is_alive(&&current[i-1]));	
-		left_border_counter += is_alive(&current[i+ncols-1]);
-		left_border_counter += is_alive(&current[i+2*ncols-1]);
-		/* top and bottom neighbours of cell on left edge */	
-		left_border_counter += is_alive(&current[i-ncols]);
-		left_border_counter += is_alive(&current[i+ncols]);
-		/* right neighbours of cell on left edge */
-		left_border_counter += is_alive(&current[i-ncols+1]);
-		left_border_counter += is_alive(&current[i+1]);
-		left_border_counter += is_alive(&current[i+ncols+1]);
-		current[i] += update_cell(left_border_counter);
-
-		i += ncols -1;
-		/* right neighbours of cell on right edge */
-		right_border_counter += is_alive(&current[i-2*ncols+1]);	
-		right_border_counter += is_alive(&current[i-ncols+1]);	
-		right_border_counter += is_alive(&current[i+1]);	
-		/* top and bottom neighbours of cell on right edge */
-		right_border_counter += is_alive(&current[i-ncols]);	
-		right_border_counter += is_alive(&current[i+ncols]);	
-		/* left neighbouts of cell on right edge */
-		right_border_counter += is_alive(&current[i-ncols-1]);	
-		right_border_counter += is_alive(&current[i-1]);
-		right_border_counter += is_alive(&current[i+ncols-1]);
-		current[i] += update_cell(right_border_counter);
-	}
-	#endif
+	
 }
 
 

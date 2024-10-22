@@ -264,13 +264,14 @@ void calculate_rows_per_processor(Env env, int *rows_per_processor, int* start_i
 	int ideal_nrows = env.nrows/env.size_of_cluster;
 	int remainder = env.nrows%env.size_of_cluster;
 	int start_row = 0;
+	//printf("env.nrows = %d, env.k = %d, ideal_nrows = %d, remainder = %d, start_row = %d\n", env.nrows, env.k, ideal_nrows, remainder, start_row);
 
 	for (int i=0; i<env.size_of_cluster; i++){
 		rows_per_processor[i] = ideal_nrows + (i < remainder? 1 : 0);
 		start_indices[i] = start_row;
 
 		if(i != 0){
-			start_indices[i]--;
+			start_indices[i]--; //overlapping extra row with previous processor 
 			rows_per_processor[i]++;
 		}
 		if(i == env.size_of_cluster-1){
