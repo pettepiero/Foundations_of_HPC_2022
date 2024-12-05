@@ -261,10 +261,10 @@ void print_env(Env env){
 }
 
 void calculate_rows_per_processor(Env env, int *rows_per_processor, int* start_indices){
-	int ideal_nrows = env.nrows/env.size_of_cluster;
-	int remainder = env.nrows%env.size_of_cluster;
+	int tot_rows = env.nrows + 2*(env.size_of_cluster -1); //Counts overlaps between two clusters too
+	int ideal_nrows = tot_rows/env.size_of_cluster;
+	int remainder = tot_rows%env.size_of_cluster;
 	int start_row = 0;
-	//printf("env.nrows = %d, env.k = %d, ideal_nrows = %d, remainder = %d, start_row = %d\n", env.nrows, env.k, ideal_nrows, remainder, start_row);
 
 	for (int i=0; i<env.size_of_cluster; i++){
 		rows_per_processor[i] = ideal_nrows + (i < remainder? 1 : 0);
@@ -272,10 +272,6 @@ void calculate_rows_per_processor(Env env, int *rows_per_processor, int* start_i
 
 		if(i != 0){
 			start_indices[i]--; //overlapping extra row with previous processor 
-			rows_per_processor[i]++;
-		}
-		if(i == env.size_of_cluster-1){
-			rows_per_processor[i] = env.nrows -1 - start_indices[i];
 		}
 		start_row = start_indices[i] + rows_per_processor[i]-1;
 	}

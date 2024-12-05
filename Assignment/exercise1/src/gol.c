@@ -171,6 +171,9 @@ int main(int argc, char** argv)
 				//	MPI_Recv(sub_map + (env.my_process_rows -1)*env.k, env.k, MPI_UNSIGNED_CHAR, next_processor, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE); 
 		        	}
 
+//				printf("\rExecuted steps: %d%%\n", (100*i)/env.n);
+//    				fflush(stdout);
+
 				/* Process 0 takes screenshot */
 				if (process_rank == 0){
 					gather_submaps(map1_char, env, start_indices, rows_per_processor);

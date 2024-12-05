@@ -19,12 +19,12 @@
 
 typedef struct {
 	int   	action;
-	int   	k;
+	int   	k; 	//number of columns
 	int   	e;
 	int   	n;
 	int   	s;
     	int 	size_of_cluster;
-	int 	nrows;
+	int 	nrows; //number of rows = k+2
 	int	my_process_rows;
 	int 	my_process_start_idx;
 } Env;

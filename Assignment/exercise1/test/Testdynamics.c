@@ -434,6 +434,25 @@ void test_static_evolution()
 }
 
 
+void test_calculate_rows_per_processor(){
+	Env env;
+	int rows_per_processor[env.size_of_cluster];
+	int start_indices[env.size_of_cluster];
+	env.size_of_cluster = 4;
+	env.nrows = 23;
+	env.k = 21;
+	int known_result[] = {8, 7, 7, 7};
+	calculate_rows_per_processor( env, rows_per_processor, start_indices);
+	TEST_ASSERT_EQUAL_INT_ARRAY_MESSAGE(known_result, rows_per_processor, 4, "Test 1");
+	
+	env.size_of_cluster = 3;
+	env.nrows = 52;
+	env.k = 50;
+	int known_result2[] = {19, 19, 18};
+	calculate_rows_per_processor(env, rows_per_processor, start_indices);
+	TEST_ASSERT_EQUAL_INT_ARRAY_MESSAGE(known_result2, rows_per_processor, 3, "Test 2");
+}
+
 int main(void)
 {
     	UNITY_BEGIN();
@@ -452,6 +471,7 @@ int main(void)
 	RUN_TEST(test_command_line_parser4);
 	RUN_TEST(test_command_line_parser5);
 	RUN_TEST(test_initialize_env_variable);
+	RUN_TEST(test_calculate_rows_per_processor);
     	UNITY_END();
 
     	return 0;

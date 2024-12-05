@@ -30,9 +30,12 @@ BUILD_PATHS = $(PATHB) $(PATHD) $(PATHO) $(PATHR)
 
 SRCT = $(wildcard $(PATHT)*.c)
 
-COMPILE=gcc -c
-LINK=gcc -fopenmp
-DEPEND=gcc -MM -MG -MF
+COMPILE=mpicc -c
+LINK=mpicc -fopenmp
+DEPEND=mpicc -MM -MG -MF
+#COMPILE=gcc -c
+#LINK=gcc -fopenmp
+#DEPEND=gcc -MM -MG -MF
 CFLAGS=-I. -I$(PATHU) -I$(PATHS) -I$(PATHI) -DTEST -fopenmp
 
 RESULTS = $(patsubst $(PATHT)Test%.c,$(PATHR)Test%.txt,$(SRCT) )
