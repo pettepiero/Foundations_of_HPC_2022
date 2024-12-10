@@ -23,9 +23,9 @@ typedef struct {
 	int   	e;
 	int   	n;
 	int   	s;
-    	int 	size_of_cluster;
+    int 	size_of_cluster;
 	int 	nrows; //number of rows = k+2
-	int	my_process_rows;
+	int		my_process_rows;
 	int 	my_process_start_idx;
 } Env;
 

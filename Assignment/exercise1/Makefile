@@ -1,5 +1,5 @@
 CC = mpicc 
-CFLAGS = -Wall -fstrict-aliasing -Wstrict-aliasing -ggdb3 -DUSE_MPI -fno-omit-frame-pointer
+CFLAGS = -Wall -fstrict-aliasing -Wstrict-aliasing -ggdb3 -DUSE_MPI -fno-omit-frame-pointer -pg
 SRCDIR = src
 BINDIR = build
 INCDIR = include

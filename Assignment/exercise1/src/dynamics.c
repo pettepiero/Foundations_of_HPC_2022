@@ -58,14 +58,6 @@ void print_map_to_file(unsigned char *restrict map, const int ncols, const int n
 
 }
 
-
-// A cell that did not change at the last time step, and none of whose neighbors changed,
-// is guaranteed not to change at the current time step as well, so a program that keeps 
-// track of which areas are active can save time by not updating inactive zones.
-void get_active_zones()
-{}
-
-
 int is_alive(unsigned char *value){
 	return (*value & 0x80) >> (sizeof(unsigned char)*8 -1);
 }
@@ -74,7 +66,7 @@ int is_alive(unsigned char *value){
 //IDEA: Use a lookup table for the neighbours ? 
 //IDEA: would it be faster to calculate neighbours for more than one position, therefore reducing #function calls?
 //NOTE: receives shifted map!! alive neighbours if its MSB is 1, dead if 0
-int count_alive_neighbours(unsigned char *restrict map, const int ncols, const int index)
+int count_alive_neighbours_multi(unsigned char *restrict map, const int ncols, const int index)
 {
 	// NOTE: indexes that are passed should not be on the edges!
 	if (index >= ncols){
@@ -101,6 +93,17 @@ int count_alive_neighbours(unsigned char *restrict map, const int ncols, const i
 	}
 
 }
+int count_alive_neighbours_single(unsigned char *restrict map, const int ncols, const int index)
+{
+    int count = 0;
+    int neighbours[] = {index-1, index+1, index-ncols, index+ncols, 
+                        index-ncols-1, index-ncols+1, index+ncols-1, index+ncols+1};
+
+    for (int i = 0; i < 8; i++) {
+        count += is_alive(&map[neighbours[i]]);
+    }
+    return count;
+}
 
 char update_cell(const int alive_neighbours) {
 /* Returns MAXVAL if #alive neighbours is 2 or 3, 0 otherwise */ 
@@ -119,7 +122,7 @@ void ordered_evolution(unsigned char *restrict map, int ncols, int nrows)
 	    	    for (int col = 0; col < ncols; col++)
 	    	    {
 	    	        i = row*ncols+ col;
-	    	        alive_counter = count_alive_neighbours(map, ncols, i);
+	    	        alive_counter = count_alive_neighbours_multi(map, ncols, i);
 	    	        map[i] = update_cell(alive_counter);
 	    	    }
 	    	}
@@ -177,7 +180,7 @@ void static_evolution(unsigned char *restrict current, int ncols, int nrows){
 		for(int row=1; row < nrows -1 ; row++){
 			for(int col=1; col < ncols-1; col++){
 				i = row*ncols+ col;
-				int alive_counter = count_alive_neighbours(current, ncols, i);
+				int alive_counter = count_alive_neighbours_multi(current, ncols, i);
 				current[i] += update_cell(alive_counter);
 			}
 			/*Count alive neighbours for left and right
@@ -216,9 +219,7 @@ void static_evolution(unsigned char *restrict current, int ncols, int nrows){
 		/* Keep only LSB */
 		mask_MSB(current, ncols, nrows);
 	}
-	
 }
-
 
 void gather_submaps(unsigned char* restrict map, const Env env, const int *start_indices, const int *rows_per_processor){
 	for(int rank=1; rank < env.size_of_cluster; rank++){
