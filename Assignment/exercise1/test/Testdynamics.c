@@ -254,14 +254,14 @@ void test_count_alive_neighbours()
  */   
 	 print_map_to_file(map, scols, srows, "./pgm/mapfile.txt");
    	 // Get number of alive neighbours for known cells
-   	 TEST_ASSERT_EQUAL_INT_MESSAGE(1, count_alive_neighbours(map, scols, 13), "test 1");
-   	 TEST_ASSERT_EQUAL_INT_MESSAGE(3, count_alive_neighbours(map, scols, 22), "test 2");
-   	 TEST_ASSERT_EQUAL_INT_MESSAGE(3, count_alive_neighbours(map, scols, 33), "test 3");
-   	 TEST_ASSERT_EQUAL_INT_MESSAGE(2, count_alive_neighbours(map, scols, 65), "test 4");
-   	 TEST_ASSERT_EQUAL_INT_MESSAGE(2, count_alive_neighbours(map, scols, 56), "test 5");
-   	 TEST_ASSERT_EQUAL_INT_MESSAGE(2, count_alive_neighbours(map, scols, 108), "test 6");
-   	 TEST_ASSERT_EQUAL_INT_MESSAGE(0, count_alive_neighbours(map, scols, 49), "test 7");
-   	 TEST_ASSERT_EQUAL_INT_MESSAGE(2, count_alive_neighbours(map, scols, 10), "test 8");
+   	 TEST_ASSERT_EQUAL_INT_MESSAGE(1, count_alive_neighbours_multi(map, scols, 13), "test 1");
+   	 TEST_ASSERT_EQUAL_INT_MESSAGE(3, count_alive_neighbours_multi(map, scols, 22), "test 2");
+   	 TEST_ASSERT_EQUAL_INT_MESSAGE(3, count_alive_neighbours_multi(map, scols, 33), "test 3");
+   	 TEST_ASSERT_EQUAL_INT_MESSAGE(2, count_alive_neighbours_multi(map, scols, 65), "test 4");
+   	 TEST_ASSERT_EQUAL_INT_MESSAGE(2, count_alive_neighbours_multi(map, scols, 56), "test 5");
+   	 TEST_ASSERT_EQUAL_INT_MESSAGE(2, count_alive_neighbours_multi(map, scols, 108), "test 6");
+   	 TEST_ASSERT_EQUAL_INT_MESSAGE(0, count_alive_neighbours_multi(map, scols, 49), "test 7");
+   	 TEST_ASSERT_EQUAL_INT_MESSAGE(2, count_alive_neighbours_multi(map, scols, 10), "test 8");
 }
 
 void test_update_cell()
@@ -453,18 +453,28 @@ void test_calculate_rows_per_processor(){
 	TEST_ASSERT_EQUAL_INT_ARRAY_MESSAGE(known_result2, rows_per_processor, 3, "Test 2");
 }
 
+void test_calculate_cache_padding(){
+	int k = 64;
+	TEST_ASSERT_EQUAL_INT_MESSAGE(0, calculate_cache_padding(k), "Test 1");
+	k = 125;
+	TEST_ASSERT_EQUAL_INT_MESSAGE(3, calculate_cache_padding(k), "Test 2");
+	k = -40;
+	TEST_ASSERT_EQUAL_INT_MESSAGE(0, calculate_cache_padding(k), "Test 3");
+}
+
+
 int main(void)
 {
-    	UNITY_BEGIN();
+    UNITY_BEGIN();
 
-    	RUN_TEST(test_update_horizontal_edges);
-    	RUN_TEST(test_count_alive_neighbours);
+    RUN_TEST(test_update_horizontal_edges);
+    RUN_TEST(test_count_alive_neighbours);
 	RUN_TEST(test_is_alive);
-    	RUN_TEST(test_update_cell);
+    RUN_TEST(test_update_cell);
 	RUN_TEST(test_shift_old_map);
-    	RUN_TEST(test_static_evolution);
-    	RUN_TEST(test_convert_map_to_binary);
-    	RUN_TEST(test_convert_map_to_char);
+    RUN_TEST(test_static_evolution);
+    RUN_TEST(test_convert_map_to_binary);
+    RUN_TEST(test_convert_map_to_char);
 	RUN_TEST(test_command_line_parser1);
 	RUN_TEST(test_command_line_parser2);
 	RUN_TEST(test_command_line_parser3);
@@ -472,7 +482,8 @@ int main(void)
 	RUN_TEST(test_command_line_parser5);
 	RUN_TEST(test_initialize_env_variable);
 	RUN_TEST(test_calculate_rows_per_processor);
-    	UNITY_END();
+	RUN_TEST(test_calculate_cache_padding);
+    UNITY_END();
 
-    	return 0;
+    return 0;
 }

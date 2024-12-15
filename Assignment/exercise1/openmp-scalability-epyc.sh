@@ -9,6 +9,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=2
 #SBATCH --output=./outputs/slurm-%j-openmp-scal-epyc.txt
+#SBATCH --mem=100gb
 
 module load openMPI/4.1.6/gnu/14.2.1
 # 0 -> ordered, 1 -> static
@@ -34,7 +35,7 @@ echo "dim,nthreads,time" > "$output_file"
 for dim in 1000 2000 4000 8000 16000
 do
         echo "Using dimension $dim"
-        echo "Running with 1 to 12 cores per socket"
+        echo "Running with 1 to 64 cores per socket"
         # Run the loop max_num_threads times
         for ((i=1; i<=$max_num_threads; i*=2))
         do

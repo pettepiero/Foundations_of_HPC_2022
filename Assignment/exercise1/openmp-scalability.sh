@@ -13,10 +13,10 @@
 module load openMPI/4.1.6/gnu/14.2.1
 # 0 -> ordered, 1 -> static
 evolution=1
-if [evolution==0]; then
-	echo "OpenMP scalability for ordered evolution"
+if [ "$evolution" -eq 0 ]; then
+    echo "OpenMP scalability for ordered evolution"
 fi
-if [evolution==1]; then
+if ["$evolution" -eq 1]; then
 	echo "OpenMP scalability for static evolution"
 fi
 
@@ -36,7 +36,7 @@ do
         echo "Using dimension $dim"
         echo "Running with 1 to 12 cores per socket"
         # Run the loop max_num_threads times
-        for ((i=1; i<=$max_num_threads; i+=1))
+        for ((i=1; i<=$max_num_threads; i*=2))
         do
             echo "Running with $i threads"
             export OMP_NUM_THREADS=$i

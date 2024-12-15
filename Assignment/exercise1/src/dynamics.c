@@ -66,33 +66,34 @@ int is_alive(unsigned char *value){
 //IDEA: Use a lookup table for the neighbours ? 
 //IDEA: would it be faster to calculate neighbours for more than one position, therefore reducing #function calls?
 //NOTE: receives shifted map!! alive neighbours if its MSB is 1, dead if 0
-int count_alive_neighbours_multi(unsigned char *restrict map, const int ncols, const int index)
-{
-	// NOTE: indexes that are passed should not be on the edges!
-	if (index >= ncols){
-		int count0 = 0;
-		int count1 = 0;
-		int count2 = 0;
-		int count3 = 0;
-		int count = 0;
-		int neighbours[] = {index-1, index+1, index-ncols, index+ncols, index-ncols-1, index-ncols+1, index+ncols-1, index+ncols+1};
+	int count_alive_neighbours_multi(unsigned char *restrict map, const int ncols, const int index)
+	{
+		// NOTE: indexes that are passed should not be on the edges!
+		if (index >= ncols){
+			int count0 = 0;
+			int count1 = 0;
+			int count2 = 0;
+			int count3 = 0;
+			int count = 0;
+			int neighbours[] = {index-1, index+1, index-ncols, index+ncols, index-ncols-1, index-ncols+1, index+ncols-1, index+ncols+1};
 
-		for (int i = 0; i < 8; i+=4){
-			count0 += is_alive(&map[neighbours[i]]); 
-			count1 += is_alive(&map[neighbours[i+1]]); 
-			count2 += is_alive(&map[neighbours[i+2]]); 
-			count3 += is_alive(&map[neighbours[i+3]]); 
+			for (int i = 0; i < 8; i+=4){
+				count0 += is_alive(&map[neighbours[i]]); 
+				count1 += is_alive(&map[neighbours[i+1]]); 
+				count2 += is_alive(&map[neighbours[i+2]]); 
+				count3 += is_alive(&map[neighbours[i+3]]); 
+			}
+			count = count0+count1+count2+count3;
+			return count;  
 		}
-		count = count0+count1+count2+count3;
-		return count;  
-	}
-	else {
-		printf("Error in count_alive_neighbours\n");
-		printf("index < ncols\n");
-		exit(1);
+		else {
+			printf("Error in count_alive_neighbours\n");
+			printf("index < ncols\n");
+			exit(1);
+		}
+
 	}
 
-}
 int count_alive_neighbours_single(unsigned char *restrict map, const int ncols, const int index)
 {
     int count = 0;
@@ -114,7 +115,7 @@ void ordered_evolution(unsigned char *restrict map, int ncols, int nrows)
 {
 	int i = 0;
 	int alive_counter = 0;
-    	#ifdef _OPENMP
+    #ifdef _OPENMP
 		#pragma omp parallel for schedule(static) firstprivate(i, alive_counter)
 	#endif
 	    	for (int row = 1; row < nrows-1; row++)
@@ -133,7 +134,7 @@ void shift_old_map(unsigned char *restrict map, const int ncols, const int nrows
 {
 	int i = 0;
 	#ifdef _OPENMP
-		#pragma omp for schedule(static) private(i)
+		#pragma omp for schedule(auto) private(i)
 	#endif
 	for(int row=0; row < nrows ; row++){
 		for(int col=0; col < ncols; col++){
@@ -170,16 +171,16 @@ void static_evolution(unsigned char *restrict current, int ncols, int nrows){
 	#ifdef _OPENMP
 		#pragma omp parallel firstprivate(left_border_counter, right_border_counter, i) 
 	#endif
-	{ 
+	{
 		shift_old_map(current, ncols, nrows, shift);	
 
 		#ifdef _OPENMP
-			#pragma omp for schedule(static)
+			#pragma omp for schedule(auto)
 		#endif	
 		//for(int row=1; row <= n_inner_rows; row++){
 		for(int row=1; row < nrows -1 ; row++){
 			for(int col=1; col < ncols-1; col++){
-				i = row*ncols+ col;
+				i = row*ncols+ col;	
 				int alive_counter = count_alive_neighbours_multi(current, ncols, i);
 				current[i] += update_cell(alive_counter);
 			}

@@ -43,6 +43,10 @@ void command_line_parser(Env *env, char **fname, int argc, char **argv){
 			        }
 				env->nrows = env->k+2;
 				printf("Selected matrix dimension %d\n", env->k);
+				printf("DEBUG: env->nrows = %d, env->k = %d\n", env->nrows, env->k);
+				//Calculate the number of columns as multiples of the cache line (64 bytes unless changed in header file of constants)
+				printf("DEBUG: going to use %d cols because of cache padding with cache line size %d\n", env->k + calculate_cache_padding(env->k), CACHE_LINE_SIZE);
+
         		break;
 
         		case 'e':
@@ -344,3 +348,15 @@ unsigned char *generate_map(unsigned char *restrict map, char* fname, const floa
     	return map;
 }
 
+/* Returns the number of bytes that have to be addded to each row 
+	so that the number of columns is a multiple of CACHE_LINE_SIZE. */
+int calculate_cache_padding(int k){
+	if (k <=0){
+		printf("ERROR: k <= 0 in calculate_cache_line_padding\n");
+		return 0;
+	}
+	if (k%CACHE_LINE_SIZE == 0){
+		return 0;
+	}
+	return CACHE_LINE_SIZE -k%CACHE_LINE_SIZE;
+}

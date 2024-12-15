@@ -18,5 +18,5 @@ void 		convert_map_to_binary(unsigned char * map, int ncols, int nrows);
 void 		convert_map_to_char(unsigned char * map, int ncols, int nrows);
 unsigned char 	*generate_blinker(unsigned char *restrict map, char fileName[], const int ncols, const int nrows); 
 unsigned char 	*generate_map(unsigned char *restrict map, char* fname, const float probability, const int ncols, const int nrows, const int seed);
-
+int         calculate_cache_padding(int k);
 #endif //UTILITIES_H

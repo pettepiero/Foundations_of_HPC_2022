@@ -16,6 +16,7 @@
 #define STATIC  1
 #define N_STEPS 100
 #define MAXVAL 1 /*1 -> white, 0 -> black*/
+#define	CACHE_LINE_SIZE 64
 
 typedef struct {
 	int   	action;

@@ -48,8 +48,6 @@ int main(int argc, char** argv)
 	if(process_rank ==0){
 		tstart1 = CPU_TIME;
 	}
-
-	printf("Hello World from process %d of %d\n", process_rank, env.size_of_cluster);
 	
 	int next_processor = calculate_next_processor(process_rank, env.size_of_cluster);	
 	int prev_processor = calculate_prev_processor(process_rank, env.size_of_cluster);	
@@ -86,7 +84,15 @@ int main(int argc, char** argv)
 
         	#ifndef _OPENMP
       			printf("\nExecuting without OPENMP in serial mode.\n");
-        	#endif
+        	#else
+				#pragma omp parallel
+				{
+					int id = omp_get_thread_num();
+					int num_threads = omp_get_num_threads();
+					#pragma omp single
+					printf("There are %d threads and I'm thread %d\n", num_threads, id);
+				}
+			#endif
 			printf("Size of MPI cluster: %d\n", env.size_of_cluster);
 			initialize_env_variable(&env);
 			command_line_parser(&env, &fname, argc, argv);
@@ -112,13 +118,14 @@ int main(int argc, char** argv)
 		env.my_process_rows = rows_per_processor[process_rank];
 	}
 
-	//DEBUG
+	//DEBUG printing how long set up took
 	if(process_rank==0){
 		tend1 = CPU_TIME;
 		ex_time1 = tend1 - tstart1;
 		printf("This setup took approximately %f seconds\n\n", ex_time1);
 	}
-    if ((env.e == ORDERED) && (process_rank ==0)){
+    
+	if ((env.e == ORDERED) && (process_rank ==0)){
 		tstart= CPU_TIME;
 		if (env.s != 0){
 			for (int i = 0; i < env.n; i += env.s) {
@@ -167,7 +174,7 @@ int main(int argc, char** argv)
 		}
 		/* Each process now has its submap in variable sub_map*/
 
-		//DEBUG
+		//DEBUG: printing when everybody is ready for loop
 		if (process_rank == 0){
 			tend1 = CPU_TIME;
 			ex_time1 = tend1 - tstart1;
@@ -252,6 +259,9 @@ int main(int argc, char** argv)
 	if (process_rank == 0) {
 		free(map1);
 		map1 = NULL;
+		tend = CPU_TIME;
+		ex_time = tend-tstart;
+		printf("\n\n%f\n\n", ex_time);
 	}
     MPI_Type_free(&mpi_env_type);
 	MPI_Finalize();
