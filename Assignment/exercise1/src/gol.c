@@ -229,8 +229,6 @@ int main(int argc, char** argv)
 		} else { /* In this case the whole evolution is performed without snapshots until the very end */ 
 			if (process_rank == 0){
 				printf("DEBUG: Starting evolution with env.k = %d\n", env.k);
-				printf("This means each thread will work on chunks of 4 rows, i.e. %d elements\n", env.k*4);
-				printf("Also, in this case, the whole evolution is performed without snapshots until the very end.\n");
 			}
     		for (int i = 0; i < env.n; i++) {
 				// Perform evolution in parallel

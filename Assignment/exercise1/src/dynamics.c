@@ -165,77 +165,70 @@ void static_evolution(unsigned char *restrict current, int ncols, int nrows, cha
 	// int left_border_counter = 0;
 	// int right_border_counter = 0;
 	int i = 0;
-	shift_old_map(current, ncols, nrows, shift);	
-	int alive_counter = 0;
+	// shift_old_map(current, ncols, nrows, shift);	
+	// int alive_counter = 0;
 
 	#ifdef _OPENMP
-		#pragma omp parallel firstprivate(i, alive_counter) 
+		#pragma omp parallel
 	#endif
 	{
-		// char *full_row = malloc(ncols * sizeof(char));  // Allocate per thread
-		// if (!full_row) {
-		// 	printf("Memory allocation failed\n");
-		// 	exit(1);
-		// }
-		// full_row[0] = 0;
-		// full_row[ncols-1] = 0;
+		int id = omp_get_thread_num();
+		unsigned char *private_row = (unsigned char*)malloc(ncols*sizeof(unsigned char));
+		if (private_row == NULL){
+			printf("Error: Could not allocate memory for private_row\n");
+			exit(1);
+		}
 
-		int sum = 0;
 		#ifdef _OPENMP
-			#pragma omp for schedule(auto)
+			#pragma omp for schedule(static, 4) private(i)
 		#endif	
 		for(int row=1; row < nrows -1 ; row++){
-			// int left_border_counter = 0;
-			// int right_border_counter = 0;
+			printf("thread %d starting row %d\n", id, row);
+			int left_border_counter = 0;
+			int right_border_counter = 0;
 			for(int col=1; col < ncols-1; col++){
-				i = row*ncols+ col;	
-				// int alive_counter = count_alive_neighbours_multi(current, ncols, i);
-				// sum++;
-				// full_row[col] = update_cell(alive_counter);
-				current[i] += 14;
+				i = row*ncols+ col;
+				// printf("%d\n", i);
+				int alive_counter = count_alive_neighbours_multi(current, ncols, i);
+				private_row[col] += 14;
 				// current[i] += update_cell(alive_counter);
-
 			}
-			// printf("Starting address of full_row: %p\n", full_row);
-			// printf("Address of last element of full_row: %p\n", &full_row[ncols-1]);
-			// for (int col = 1; col < ncols-1; col++){
-			// 	i = row*ncols+ col;
-			// 	current[i] = full_row[col];
-			// }
-			
+		
 			/*Count alive neighbours for left and right
   			 border elements */
+			 /*
 			// i = row*ncols;
 			// left_border_counter = 0;
 			// right_border_counter = 0;
-			// /* left neighbours of cell on left edge */
+			// // left neighbours of cell on left edge
 			// left_border_counter += is_alive(&current[i-1]);	
 			// left_border_counter += is_alive(&current[i+ncols-1]);
 			// left_border_counter += is_alive(&current[i+2*ncols-1]);
-			// /* top and bottom neighbours of cell on left edge */	
+			// // top and bottom neighbours of cell on left edge	
 			// left_border_counter += is_alive(&current[i-ncols]);
 			// left_border_counter += is_alive(&current[i+ncols]);
-			// /* right neighbours of cell on left edge */
+			// // right neighbours of cell on left edge
 			// left_border_counter += is_alive(&current[i-ncols+1]);
 			// left_border_counter += is_alive(&current[i+1]);
 			// left_border_counter += is_alive(&current[i+ncols+1]);
 			// current[i] += update_cell(left_border_counter);
 
 			// i += ncols -1;
-			// /* right neighbours of cell on right edge */
+			// //right neighbours of cell on right edge
 			// right_border_counter += is_alive(&current[i-2*ncols+1]);	
 			// right_border_counter += is_alive(&current[i-ncols+1]);	
 			// right_border_counter += is_alive(&current[i+1]);	
-			// /* top and bottom neighbours of cell on right edge */
+			// // top and bottom neighbours of cell on right edge 
 			// right_border_counter += is_alive(&current[i-ncols]);	
 			// right_border_counter += is_alive(&current[i+ncols]);	
-			// /* left neighbouts of cell on right edge */
+			// // left neighbouts of cell on right edge
 			// right_border_counter += is_alive(&current[i-ncols-1]);	
 			// right_border_counter += is_alive(&current[i-1]);
 			// right_border_counter += is_alive(&current[i+ncols-1]);
 			// current[i] += update_cell(right_border_counter);
+			*/
 		}
-		// free(full_row);
+		free(private_row);
 	}
 	/* Keep only LSB */
 	mask_MSB(current, ncols, nrows);
