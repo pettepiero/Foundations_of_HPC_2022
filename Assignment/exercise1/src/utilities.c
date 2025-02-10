@@ -46,7 +46,7 @@ void command_line_parser(Env *env, char **fname, int argc, char **argv){
 				printf("DEBUG: env->nrows = %d, env->k = %d\n", env->nrows, env->k);
 				//Calculate the number of columns as multiples of the cache line (64 bytes unless changed in header file of constants)
 				printf("DEBUG: going to use %d cols because of cache padding with cache line size %d\n", env->k + calculate_cache_padding(env->k), CACHE_LINE_SIZE);
-
+				env->k += calculate_cache_padding(env->k);
         		break;
 
         		case 'e':
@@ -169,7 +169,7 @@ void set_up_map_variable(int action, int evolution, int k, void **map, int maxva
 	}
         *map = (void *)calloc(nrows*ncols, sizeof(unsigned char));
 	if (*map == NULL){
-        	printf("Error: Could not allocate memory for map\n");
+        	printf("Error: Could not allocate memory for map in set_up_map_variable.\n");
             	exit(1);
        	}
 
@@ -211,7 +211,7 @@ void set_up_map_variable(int action, int evolution, int k, void **map, int maxva
 		*map = NULL;
         	*map = (unsigned char*)malloc(ncols*nrows*sizeof(unsigned char));
         	if (*map == NULL){
-        	    printf("Error: Could not allocate memory for map\n");
+        	    printf("Error: Could not allocate memory for map in initialization.\n");
         	    exit(1);
         	}
 		
@@ -348,15 +348,14 @@ unsigned char *generate_map(unsigned char *restrict map, char* fname, const floa
     	return map;
 }
 
-/* Returns the number of bytes that have to be addded to each row 
-	so that the number of columns is a multiple of CACHE_LINE_SIZE. */
+/* 	Returns the first multiple of CACHE_LINE_SIZE grater than the specified number of columns k
+	This is done for efficiency purposes when working on cache lines and avoid false sharing*/
 int calculate_cache_padding(int k){
 	if (k <=0){
 		printf("ERROR: k <= 0 in calculate_cache_line_padding\n");
 		return 0;
 	}
-	if (k%CACHE_LINE_SIZE == 0){
+	if (k%CACHE_LINE_SIZE == 0)
 		return 0;
-	}
 	return CACHE_LINE_SIZE -k%CACHE_LINE_SIZE;
 }

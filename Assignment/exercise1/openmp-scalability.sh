@@ -16,14 +16,19 @@ evolution=1
 if [ "$evolution" -eq 0 ]; then
     echo "OpenMP scalability for ordered evolution"
 fi
-if ["$evolution" -eq 1]; then
+if [ "$evolution" -eq 1 ]; then
 	echo "OpenMP scalability for static evolution"
 fi
 
 echo "Running game of life with different #threads"
 echo "to collect data for time/threads plots"
 
-output_file="./outputs/timings/openmp-scal-$SLURM_JOB_ID.csv"
+# Create a folder with today's date
+today=$(date +%Y-%m-%d)
+output_dir="./outputs/$today"
+mkdir -p "$output_dir/timings"
+
+output_file="$output_dir/timings/openmp-scal-$SLURM_JOB_ID.csv"
 max_num_threads=12
 
 export OMP_PLACES=cores

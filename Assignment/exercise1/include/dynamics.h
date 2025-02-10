@@ -10,7 +10,7 @@ int             count_alive_neighbours_multi(unsigned char *restrict map, int si
 int             count_alive_neighbours_single(unsigned char *restrict map, int size, int index);
 char            update_cell(int alive_neighbours);
 void 		    ordered_evolution(unsigned char *restrict map, int ncols, int nrows);
-void 		    static_evolution(unsigned char *restrict current, int ncols, int n_inner_rows);
+void            static_evolution(unsigned char *restrict current, int ncols, int nrows, char shift);
 void		    update_horizontal_edges(unsigned char *restrict map, const int ncols, const int nrows);
 void                init_to_zero(unsigned char *restrict map1, const int k);
 void 		    print_map_to_file(unsigned char *restrict map, const int ncols, const int nrows, const char fileName[]);

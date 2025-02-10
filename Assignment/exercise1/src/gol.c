@@ -27,7 +27,7 @@ int main(int argc, char** argv)
 
 	MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &mpi_provided_thread_level);
 	if ( mpi_provided_thread_level < MPI_THREAD_FUNNELED ) {
-		printf("a problem arise when asking for MPI_THREAD_FUNNELED level\n");
+		printf("a problem arised when asking for MPI_THREAD_FUNNELED level\n");
 		MPI_Finalize();
 		exit( 1 );
 	}
@@ -57,21 +57,22 @@ int main(int argc, char** argv)
 	env.my_process_start_idx = 0;
     
 		/* Creating an MPI type to send Env variable */
-	const int 		nitems = 9;
-	int 			blocklengths[9] = {1, 1, 1, 1, 1, 1, 1, 1, 1};
-	MPI_Datatype 	types[9] = {MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT}; 
+	const int 		nitems = 10;
+	int 			blocklengths[10] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+	MPI_Datatype 	types[10] = {MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT}; 
 	MPI_Datatype 	mpi_env_type;
-	MPI_Aint 		offsets[9];
+	MPI_Aint 		offsets[10];
 	
 	offsets[0] = offsetof(Env, action);
 	offsets[1] = offsetof(Env, k);
-	offsets[2] = offsetof(Env, e);
-	offsets[3] = offsetof(Env, n);
-	offsets[4] = offsetof(Env, s);
-	offsets[5] = offsetof(Env, size_of_cluster);
-	offsets[6] = offsetof(Env, nrows);
-	offsets[7] = offsetof(Env, my_process_rows);
-	offsets[8] = offsetof(Env, my_process_start_idx);
+	offsets[2] = offsetof(Env, cache_padding);
+	offsets[3] = offsetof(Env, e);
+	offsets[4] = offsetof(Env, n);
+	offsets[5] = offsetof(Env, s);
+	offsets[6] = offsetof(Env, size_of_cluster);
+	offsets[7] = offsetof(Env, nrows);
+	offsets[8] = offsetof(Env, my_process_rows);
+	offsets[9] = offsetof(Env, my_process_start_idx);
 
 	MPI_Type_create_struct(nitems, blocklengths, offsets, types, &mpi_env_type);
 	MPI_Type_commit(&mpi_env_type);
@@ -125,6 +126,11 @@ int main(int argc, char** argv)
 		printf("This setup took approximately %f seconds\n\n", ex_time1);
 	}
     
+
+	/* Shift old values of map to MSB 
+ 	*  this means that 0 becomes 0 and 1 becomes 2^(shift)128 */
+	char shift = sizeof(unsigned char)*8 -1;
+
 	if ((env.e == ORDERED) && (process_rank ==0)){
 		tstart= CPU_TIME;
 		if (env.s != 0){
@@ -154,14 +160,16 @@ int main(int argc, char** argv)
 			printf("Process %d error: Could not allocate memory for local maps\n", process_rank);
 			exit(1);
 		}
+		printf("DEBUG: process %d allocated sub_map correctly\n", process_rank);
 
 		/* Initialize local sub matrices with OpenMP, to warm up the data properly*/
 		#ifdef _OPENMP
+			printf("DEBUG: Initializing OpenMP...\n");
 			#pragma omp parallel for
 		#endif
 		for (int i=0; i<env.my_process_rows*env.k; i++){
 			sub_map[i] = 0;	
-		}	
+		}
 		/* Process 0 sends initial submap to every MPI process */	
 		if (process_rank == 0){
 			tstart = CPU_TIME;
@@ -187,7 +195,7 @@ int main(int argc, char** argv)
 			for (int i = 0; i < env.n; i += env.s) {
 				/* Inner loop, iterations that do not need screenshot */
 				for (int j = 0; j < env.s && i + j < env.n; j++) {
-					static_evolution(sub_map, env.k, env.my_process_rows);
+					static_evolution(sub_map, env.k, env.my_process_rows, shift);
 					if (process_rank == 0){
 					}
 					// Swapping second top and second last rows with neighbours
@@ -219,22 +227,27 @@ int main(int argc, char** argv)
 				}
 			}
 		} else { /* In this case the whole evolution is performed without snapshots until the very end */ 
+			if (process_rank == 0){
+				printf("DEBUG: Starting evolution with env.k = %d\n", env.k);
+				printf("This means each thread will work on chunks of 4 rows, i.e. %d elements\n", env.k*4);
+				printf("Also, in this case, the whole evolution is performed without snapshots until the very end.\n");
+			}
     		for (int i = 0; i < env.n; i++) {
-			// Perform evolution in parallel
-			static_evolution(sub_map, env.k, env.my_process_rows);
-			// Swapping second top and second last rows with neighbours
-			MPI_Sendrecv(sub_map + env.k, env.k, MPI_UNSIGNED_CHAR, prev_processor, 0,
-            			sub_map + (env.my_process_rows - 1) * env.k, env.k, MPI_UNSIGNED_CHAR, next_processor, 0,
-            			MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			MPI_Sendrecv(sub_map + (env.my_process_rows - 2) * env.k, env.k, MPI_UNSIGNED_CHAR, next_processor, 0,
-            			sub_map, env.k, MPI_UNSIGNED_CHAR, prev_processor, 0,
-            			MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				// Perform evolution in parallel
+				static_evolution(sub_map, env.k, env.my_process_rows, shift);
+				// Swapping second top and second last rows with neighbours
+				MPI_Sendrecv(sub_map + env.k, env.k, MPI_UNSIGNED_CHAR, prev_processor, 0,
+							sub_map + (env.my_process_rows - 1) * env.k, env.k, MPI_UNSIGNED_CHAR, next_processor, 0,
+							MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				MPI_Sendrecv(sub_map + (env.my_process_rows - 2) * env.k, env.k, MPI_UNSIGNED_CHAR, next_processor, 0,
+							sub_map, env.k, MPI_UNSIGNED_CHAR, prev_processor, 0,
+							MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-			//	MPI_Send(sub_map + env.k, env.k, MPI_UNSIGNED_CHAR, prev_processor , 0, MPI_COMM_WORLD);
-			//	MPI_Recv(sub_map, env.k, MPI_UNSIGNED_CHAR, prev_processor, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE); 
-			//	MPI_Send(sub_map + (env.my_process_rows-2)*env.k, env.k, MPI_UNSIGNED_CHAR, next_processor, 0, MPI_COMM_WORLD);
-			//	MPI_Recv(sub_map + (env.my_process_rows -1)*env.k, env.k, MPI_UNSIGNED_CHAR, next_processor, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE); 
-			} 
+				//	MPI_Send(sub_map + env.k, env.k, MPI_UNSIGNED_CHAR, prev_processor , 0, MPI_COMM_WORLD);
+				//	MPI_Recv(sub_map, env.k, MPI_UNSIGNED_CHAR, prev_processor, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE); 
+				//	MPI_Send(sub_map + (env.my_process_rows-2)*env.k, env.k, MPI_UNSIGNED_CHAR, next_processor, 0, MPI_COMM_WORLD);
+				//	MPI_Recv(sub_map + (env.my_process_rows -1)*env.k, env.k, MPI_UNSIGNED_CHAR, next_processor, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE); 
+			}
 			if (process_rank == 0){
 				gather_submaps(map1_char, env, start_indices, rows_per_processor);
 				memcpy(map1_char + start_indices[process_rank] * env.k, sub_map, env.my_process_rows * env.k);

@@ -20,7 +20,8 @@
 
 typedef struct {
 	int   	action;
-	int   	k; 	//number of columns
+	int   	k; 	//number of columns (cache padded)
+	int		cache_padding;  //size of cache padding (fake columns|)
 	int   	e;
 	int   	n;
 	int   	s;

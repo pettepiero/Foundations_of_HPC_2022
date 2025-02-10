@@ -159,67 +159,86 @@ void mask_MSB(unsigned char *restrict map, const int ncols, const int nrows)
 	}
 }
 
-void static_evolution(unsigned char *restrict current, int ncols, int nrows){
+void static_evolution(unsigned char *restrict current, int ncols, int nrows, char shift){
     /*Performs a single step of the update of the map*/
 	//int n_inner_rows = nrows -2;	
-	int left_border_counter = 0;
-	int right_border_counter = 0;
+	// int left_border_counter = 0;
+	// int right_border_counter = 0;
 	int i = 0;
-	/* Shift old values of map to MSB 
- 	*  this means that 0 becomes 0 and 1 becomes 2^(shift)128 */
-	char shift = sizeof(unsigned char)*8 -1;
+	shift_old_map(current, ncols, nrows, shift);	
+	int alive_counter = 0;
+
 	#ifdef _OPENMP
-		#pragma omp parallel firstprivate(left_border_counter, right_border_counter, i) 
+		#pragma omp parallel firstprivate(i, alive_counter) 
 	#endif
 	{
-		shift_old_map(current, ncols, nrows, shift);	
+		// char *full_row = malloc(ncols * sizeof(char));  // Allocate per thread
+		// if (!full_row) {
+		// 	printf("Memory allocation failed\n");
+		// 	exit(1);
+		// }
+		// full_row[0] = 0;
+		// full_row[ncols-1] = 0;
 
+		int sum = 0;
 		#ifdef _OPENMP
 			#pragma omp for schedule(auto)
 		#endif	
-		//for(int row=1; row <= n_inner_rows; row++){
 		for(int row=1; row < nrows -1 ; row++){
+			// int left_border_counter = 0;
+			// int right_border_counter = 0;
 			for(int col=1; col < ncols-1; col++){
 				i = row*ncols+ col;	
-				int alive_counter = count_alive_neighbours_multi(current, ncols, i);
-				current[i] += update_cell(alive_counter);
+				// int alive_counter = count_alive_neighbours_multi(current, ncols, i);
+				// sum++;
+				// full_row[col] = update_cell(alive_counter);
+				current[i] += 14;
+				// current[i] += update_cell(alive_counter);
+
 			}
+			// printf("Starting address of full_row: %p\n", full_row);
+			// printf("Address of last element of full_row: %p\n", &full_row[ncols-1]);
+			// for (int col = 1; col < ncols-1; col++){
+			// 	i = row*ncols+ col;
+			// 	current[i] = full_row[col];
+			// }
+			
 			/*Count alive neighbours for left and right
   			 border elements */
-			i = row*ncols;
-			left_border_counter = 0;
-			right_border_counter = 0;
-			/* left neighbours of cell on left edge */
-			left_border_counter += is_alive(&current[i-1]);	
-			left_border_counter += is_alive(&current[i+ncols-1]);
-			left_border_counter += is_alive(&current[i+2*ncols-1]);
-			/* top and bottom neighbours of cell on left edge */	
-			left_border_counter += is_alive(&current[i-ncols]);
-			left_border_counter += is_alive(&current[i+ncols]);
-			/* right neighbours of cell on left edge */
-			left_border_counter += is_alive(&current[i-ncols+1]);
-			left_border_counter += is_alive(&current[i+1]);
-			left_border_counter += is_alive(&current[i+ncols+1]);
-			current[i] += update_cell(left_border_counter);
+			// i = row*ncols;
+			// left_border_counter = 0;
+			// right_border_counter = 0;
+			// /* left neighbours of cell on left edge */
+			// left_border_counter += is_alive(&current[i-1]);	
+			// left_border_counter += is_alive(&current[i+ncols-1]);
+			// left_border_counter += is_alive(&current[i+2*ncols-1]);
+			// /* top and bottom neighbours of cell on left edge */	
+			// left_border_counter += is_alive(&current[i-ncols]);
+			// left_border_counter += is_alive(&current[i+ncols]);
+			// /* right neighbours of cell on left edge */
+			// left_border_counter += is_alive(&current[i-ncols+1]);
+			// left_border_counter += is_alive(&current[i+1]);
+			// left_border_counter += is_alive(&current[i+ncols+1]);
+			// current[i] += update_cell(left_border_counter);
 
-			i += ncols -1;
-			/* right neighbours of cell on right edge */
-			right_border_counter += is_alive(&current[i-2*ncols+1]);	
-			right_border_counter += is_alive(&current[i-ncols+1]);	
-			right_border_counter += is_alive(&current[i+1]);	
-			/* top and bottom neighbours of cell on right edge */
-			right_border_counter += is_alive(&current[i-ncols]);	
-			right_border_counter += is_alive(&current[i+ncols]);	
-			/* left neighbouts of cell on right edge */
-			right_border_counter += is_alive(&current[i-ncols-1]);	
-			right_border_counter += is_alive(&current[i-1]);
-			right_border_counter += is_alive(&current[i+ncols-1]);
-			current[i] += update_cell(right_border_counter);
+			// i += ncols -1;
+			// /* right neighbours of cell on right edge */
+			// right_border_counter += is_alive(&current[i-2*ncols+1]);	
+			// right_border_counter += is_alive(&current[i-ncols+1]);	
+			// right_border_counter += is_alive(&current[i+1]);	
+			// /* top and bottom neighbours of cell on right edge */
+			// right_border_counter += is_alive(&current[i-ncols]);	
+			// right_border_counter += is_alive(&current[i+ncols]);	
+			// /* left neighbouts of cell on right edge */
+			// right_border_counter += is_alive(&current[i-ncols-1]);	
+			// right_border_counter += is_alive(&current[i-1]);
+			// right_border_counter += is_alive(&current[i+ncols-1]);
+			// current[i] += update_cell(right_border_counter);
 		}
-
-		/* Keep only LSB */
-		mask_MSB(current, ncols, nrows);
+		// free(full_row);
 	}
+	/* Keep only LSB */
+	mask_MSB(current, ncols, nrows);
 }
 
 void gather_submaps(unsigned char* restrict map, const Env env, const int *start_indices, const int *rows_per_processor){
