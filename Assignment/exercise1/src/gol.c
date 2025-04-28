@@ -220,8 +220,8 @@ int main(int argc, char** argv)
 					memcpy(map1_char + start_indices[process_rank] * env.k, sub_map, env.my_process_rows * env.k);
 					//memcpy(map1_char, sub_map, env.my_process_rows);
 					update_horizontal_edges(map1_char, env.k, env.nrows);
-		    			sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", i + env.s - 1);
-		    			write_pgm_image(map1_char, MAXVAL, env.k, env.nrows, snapshot_name);
+					sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", i + env.s - 1);
+					write_pgm_image(map1_char, MAXVAL, env.k, env.nrows, snapshot_name);
    				} else {
 					send_submaps(sub_map, env, rows_per_processor, process_rank);
 				}

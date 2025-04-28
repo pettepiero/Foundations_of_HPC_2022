@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -A dssc
-#SBATCH --job-name=openmp-scal
+#SBATCH --job-name=mini-openmp-scal
 #SBATCH --partition=EPYC
 #SBATCH --nodelist=epyc007
 #SBATCH --time=00:10:0
@@ -16,7 +16,7 @@ evolution=1
 if [evolution==1]; then
 	echo "OpenMP scalability for static evolution"
 fi
-num_steps=50
+num_steps=20
 
 echo "Running game of life with different #threads"
 echo "to collect data for time/threads plots"
@@ -34,7 +34,8 @@ echo "OMP_PLACES = $OMP_PLACES , OMP_PROC_BIND = $OMP_PROC_BIND"
 
 echo "dim,nthreads,time" > "$output_file"
 # for dim in 1000 2000 4000 8000 16000
-for dim in 8000 10000
+for dim in 1000 5000
+# for dim in 100 300
 do
         echo "Using dimension $dim"
         echo "Running with 1 to 64 cores per socket"

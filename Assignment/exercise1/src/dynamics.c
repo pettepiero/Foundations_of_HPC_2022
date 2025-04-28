@@ -8,6 +8,11 @@
 #include <omp.h>
 #include <mpi.h>
 
+
+#define IS_ALIVE(value) (((value) & 0x80) ? 1 : 0)
+
+#define UPDATE_CELL(count) ((count == 3 || count == 2) ? MAXVAL : 0) // Example logic
+
 void init_to_zero(unsigned char *restrict map1, const int k)
 {
     #ifdef _OPENMP
@@ -66,35 +71,28 @@ int is_alive(unsigned char *value){
 //IDEA: Use a lookup table for the neighbours ? 
 //IDEA: would it be faster to calculate neighbours for more than one position, therefore reducing #function calls?
 //NOTE: receives shifted map!! alive neighbours if its MSB is 1, dead if 0
-	int count_alive_neighbours_multi(unsigned char *restrict map, const int ncols, const int index)
+int count_alive_neighbours_multi(const unsigned char *restrict map, const int ncols, const int index)
 	{
 		// NOTE: indexes that are passed should not be on the edges!
-		if (index >= ncols){
-			int count0 = 0;
-			int count1 = 0;
-			int count2 = 0;
-			int count3 = 0;
-			int count = 0;
-			int neighbours[] = {index-1, index+1, index-ncols, index+ncols, index-ncols-1, index-ncols+1, index+ncols-1, index+ncols+1};
-
-			for (int i = 0; i < 8; i+=4){
-				count0 += is_alive(&map[neighbours[i]]); 
-				count1 += is_alive(&map[neighbours[i+1]]); 
-				count2 += is_alive(&map[neighbours[i+2]]); 
-				count3 += is_alive(&map[neighbours[i+3]]); 
-			}
-			count = count0+count1+count2+count3;
-			return count;  
-		}
-		else {
-			printf("Error in count_alive_neighbours\n");
-			printf("index < ncols\n");
-			exit(1);
-		}
-
+		int count0 = 0;
+		int count1 = 0;
+		int count2 = 0;
+		int count = 0;
+		// int count3 = 0;
+		// Precompute the row offsets
+		int prev_row = index - ncols;
+		int next_row = index + ncols;
+		count0 = is_alive(&map[index - 1]) + is_alive(&map[index + 1]);
+		count1 = is_alive(&map[prev_row]) + is_alive(&map[prev_row - 1]) + is_alive(&map[prev_row + 1]);
+		count2 = is_alive(&map[next_row]) + is_alive(&map[next_row - 1]) + is_alive(&map[next_row + 1]);
+		// count1 = is_alive(&map[index - ncols]) + is_alive(&map[index + ncols]);
+		// count2 = is_alive(&map[index - ncols - 1]) + is_alive(&map[index - ncols + 1]);
+		// count3 = is_alive(&map[index + ncols - 1]) + is_alive(&map[index + ncols + 1]);
+		// count = count0+count1+count2+count3;
+		return count;  
 	}
 
-int count_alive_neighbours_single(unsigned char *restrict map, const int ncols, const int index)
+int count_alive_neighbours_single(const unsigned char *restrict map, const int ncols, const int index)
 {
     int count = 0;
     int neighbours[] = {index-1, index+1, index-ncols, index+ncols, 
@@ -124,7 +122,7 @@ void ordered_evolution(unsigned char *restrict map, int ncols, int nrows)
 	    	    {
 	    	        i = row*ncols+ col;
 	    	        alive_counter = count_alive_neighbours_multi(map, ncols, i);
-	    	        map[i] = update_cell(alive_counter);
+	    	        map[i] = UPDATE_CELL(alive_counter);
 	    	    }
 	    	}
 }
@@ -165,70 +163,63 @@ void static_evolution(unsigned char *restrict current, int ncols, int nrows, cha
 	// int left_border_counter = 0;
 	// int right_border_counter = 0;
 	int i = 0;
-	// shift_old_map(current, ncols, nrows, shift);	
+	shift_old_map(current, ncols, nrows, shift);	
 	// int alive_counter = 0;
 
 	#ifdef _OPENMP
 		#pragma omp parallel
 	#endif
 	{
-		int id = omp_get_thread_num();
-		unsigned char *private_row = (unsigned char*)malloc(ncols*sizeof(unsigned char));
-		if (private_row == NULL){
-			printf("Error: Could not allocate memory for private_row\n");
-			exit(1);
-		}
-
 		#ifdef _OPENMP
 			#pragma omp for schedule(static, 4) private(i)
 		#endif	
 		for(int row=1; row < nrows -1 ; row++){
-			printf("thread %d starting row %d\n", id, row);
+			for(int col=1; col<ncols-1; col += CACHE_LINE_SIZE){
+				for(int cc=col; cc<col+CACHE_LINE_SIZE && cc<ncols; cc++){
+					i = row*ncols+ cc;
+					int alive_counter = count_alive_neighbours_multi(current, ncols, i);
+					current[i] += UPDATE_CELL(alive_counter);
+				}
+			}
 			int left_border_counter = 0;
 			int right_border_counter = 0;
-			for(int col=1; col < ncols-1; col++){
-				i = row*ncols+ col;
-				// printf("%d\n", i);
-				int alive_counter = count_alive_neighbours_multi(current, ncols, i);
-				private_row[col] += 14;
-				// current[i] += update_cell(alive_counter);
-			}
+			// for(int col=1; col < ncols-1; col++){
+			// 	i = row*ncols+ col;
+			// 	int alive_counter = count_alive_neighbours_multi(current, ncols, i);
+			// 	// private_row[col] += count_alive_neighbours_multi(current, ncols, i);
+			// 	current[i] += UPDATE_CELL(alive_counter);
+			// 	// current[i] += UPDATE_CELL(3);
+			// }
 		
 			/*Count alive neighbours for left and right
   			 border elements */
-			 /*
-			// i = row*ncols;
-			// left_border_counter = 0;
-			// right_border_counter = 0;
-			// // left neighbours of cell on left edge
-			// left_border_counter += is_alive(&current[i-1]);	
-			// left_border_counter += is_alive(&current[i+ncols-1]);
-			// left_border_counter += is_alive(&current[i+2*ncols-1]);
-			// // top and bottom neighbours of cell on left edge	
-			// left_border_counter += is_alive(&current[i-ncols]);
-			// left_border_counter += is_alive(&current[i+ncols]);
-			// // right neighbours of cell on left edge
-			// left_border_counter += is_alive(&current[i-ncols+1]);
-			// left_border_counter += is_alive(&current[i+1]);
-			// left_border_counter += is_alive(&current[i+ncols+1]);
-			// current[i] += update_cell(left_border_counter);
 
-			// i += ncols -1;
-			// //right neighbours of cell on right edge
-			// right_border_counter += is_alive(&current[i-2*ncols+1]);	
-			// right_border_counter += is_alive(&current[i-ncols+1]);	
-			// right_border_counter += is_alive(&current[i+1]);	
-			// // top and bottom neighbours of cell on right edge 
-			// right_border_counter += is_alive(&current[i-ncols]);	
-			// right_border_counter += is_alive(&current[i+ncols]);	
-			// // left neighbouts of cell on right edge
-			// right_border_counter += is_alive(&current[i-ncols-1]);	
-			// right_border_counter += is_alive(&current[i-1]);
-			// right_border_counter += is_alive(&current[i+ncols-1]);
-			// current[i] += update_cell(right_border_counter);
-			*/
+			i = row*ncols;
+			left_border_counter = 0;
+			right_border_counter = 0;
+
+			left_border_counter += is_alive(&current[i-1]);	
+			left_border_counter += is_alive(&current[i+1]);
+			left_border_counter += is_alive(&current[i+ncols-1]);
+			left_border_counter += is_alive(&current[i+ncols+1]);
+			left_border_counter += is_alive(&current[i+ncols]);
+			left_border_counter += is_alive(&current[i+2*ncols-1]);	
+			left_border_counter += is_alive(&current[i-ncols]);
+			left_border_counter += is_alive(&current[i-ncols+1]);
+			current[i] += UPDATE_CELL(left_border_counter);
+
+			i += ncols -1;
+			right_border_counter += is_alive(&current[i+1]);	
+			right_border_counter += is_alive(&current[i-1]);
+			right_border_counter += is_alive(&current[i+ncols-1]);
+			right_border_counter += is_alive(&current[i+ncols]);	
+			right_border_counter += is_alive(&current[i-2*ncols+1]);	
+			right_border_counter += is_alive(&current[i-ncols+1]);	
+			right_border_counter += is_alive(&current[i-ncols-1]);	
+			right_border_counter += is_alive(&current[i-ncols]);	
+		
+			current[i] += UPDATE_CELL(right_border_counter);
 		}
-		free(private_row);
 	}
 	/* Keep only LSB */
 	mask_MSB(current, ncols, nrows);
