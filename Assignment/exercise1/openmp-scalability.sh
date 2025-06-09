@@ -2,15 +2,14 @@
 #SBATCH -A dssc
 #SBATCH --job-name=openmp-scal
 #SBATCH --partition=THIN
-#SBATCH --nodelist=thin009
+#SBATCH --nodelist=thin008
 #SBATCH --time=02:00:0
-#SBATCH --exclusive
 #SBATCH --cpus-per-task=12
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=2
+#SBATCH --ntasks=1
 #SBATCH --output=./outputs/slurm-%j-openmp-scal.txt
 
-module load openMPI/4.1.6/gnu/14.2.1
+module load openMPI/4.1.6
 # 0 -> ordered, 1 -> static
 evolution=1
 if [ "$evolution" -eq 0 ]; then
@@ -36,17 +35,19 @@ export OMP_PROC_BIND=close
 echo "OMP_PLACES = $OMP_PLACES , OMP_PROC_BIND = $OMP_PROC_BIND"
 
 echo "dim,nthreads,time" > "$output_file"
-for dim in 1000 2000 4000 8000 16000
+#for dim in 1000 2000 4000 8000 16000
+for dim in 15000 20000 25000 
 do
         echo "Using dimension $dim"
         echo "Running with 1 to 12 cores per socket"
         # Run the loop max_num_threads times
-        for ((i=1; i<=$max_num_threads; i*=2))
+        for i in 1 2 4 6 8 10 12 
         do
             echo "Running with $i threads"
             export OMP_NUM_THREADS=$i
             
-            output=$(mpirun -n 1 ./build/gol.x -i -e $evolution -k $dim -s 0)
+            #output=$(mpirun -n 1 ./build/gol.x -i -e $evolution -k $dim -s 0)
+            output=$(./build/gol.x -i -e $evolution -k $dim -s 0)
             time=$(echo "$output" | tail -n 1)
             echo "$dim,$i,$time" >> "$output_file"
 

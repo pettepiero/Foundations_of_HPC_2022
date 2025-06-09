@@ -2,26 +2,28 @@
 #SBATCH -A dssc
 #SBATCH --job-name=mpi-scal
 #SBATCH --partition=THIN
-#SBATCH --nodelist=thin[005-008]
+#SBATCH --nodelist=thin[002-003]
 #SBATCH --time=02:00:0
 #SBATCH --ntasks-per-node=2 
 #SBATCH --cpus-per-task=12
 #SBATCH --nodes=4
 #SBATCH --exclusive
 #SBATCH --output=./outputs/slurm-%j-mpi-scal.txt
-module load openMPI/4.1.6/gnu/14.2.1
+module load openMPI/4.1.6
 # 0 -> ordered, 1 -> static
 evolution=1
-if [evolution==0]; then
-	echo "MPI scalability for ordered evolution"
+if [ "$evolution" = 0 ]; then
+    echo "MPI scalability for ordered evolution"
 fi
-if [evolution==1]; then
-	echo "MPI scalability for static evolution"
+
+if [ "$evolution" = 1 ]; then
+    echo "MPI scalability for static evolution"
 fi
 
 echo "Running game of life with different #MPI tasks"
 echo "to collect data for time/tasks plots"
 
+mkdir -p ./outputs/timings
 output_file="./outputs/timings/mpi-scal-$SLURM_JOB_ID.csv"
 mapping="socket"
 
@@ -40,7 +42,7 @@ do
 		    
 	        time=$(echo "$output" | tail -n 1)
 	        echo "$dim,$ntasks,$time" >> "$output_file"
-	        echo "$output" >> "./outputs/slurm-$SLURM_JOB_ID-serial.txt"
+	        echo "$output" >> "./outputs/slurm-$SLURM_JOB_ID.txt"
 		echo "Finished $ntasks tasks run"
 	done
 done

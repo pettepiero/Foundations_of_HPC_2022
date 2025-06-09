@@ -9,14 +9,15 @@
 #SBATCH --nodes=4
 #SBATCH --exclusive
 #SBATCH --output=./outputs/slurm-%j-mpi-scal-epyc.txt
-module load openMPI/4.1.6/gnu/14.2.1
+module load openMPI/4.1.6
 # 0 -> ordered, 1 -> static
 evolution=1
-if [evolution==0]; then
-	echo "MPI scalability for ordered evolution"
+if [ "$evolution" = 0 ]; then
+    echo "MPI scalability for ordered evolution"
 fi
-if [evolution==1]; then
-	echo "MPI scalability for static evolution"
+
+if [ "$evolution" = 1 ]; then
+    echo "MPI scalability for static evolution"
 fi
 
 echo "Running game of life with different #MPI tasks"
