@@ -36,7 +36,7 @@ DEPEND=mpicc -MM -MG -MF
 #COMPILE=gcc -c
 #LINK=gcc -fopenmp
 #DEPEND=gcc -MM -MG -MF
-CFLAGS=-I. -I$(PATHU) -I$(PATHS) -I$(PATHI) -DTEST -fopenmp
+CFLAGS=-I. -I$(PATHU) -I$(PATHS) -I$(PATHI) -DTEST -fopenmp -g
 
 RESULTS = $(patsubst $(PATHT)Test%.c,$(PATHR)Test%.txt,$(SRCT) )
 

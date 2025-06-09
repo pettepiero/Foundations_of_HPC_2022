@@ -11,8 +11,6 @@
 
 #define IS_ALIVE(value) (((value) & 0x80) ? 1 : 0)
 
-#define UPDATE_CELL(count) ((count == 3 || count == 2) ? MAXVAL : 0) // Example logic
-
 void init_to_zero(unsigned char *restrict map1, const int k)
 {
     #ifdef _OPENMP
@@ -63,7 +61,8 @@ void print_map_to_file(unsigned char *restrict map, const int ncols, const int n
 
 }
 
-int is_alive(unsigned char *value){
+int is_alive(const unsigned char *value){
+//	printf("DEBUG: passed value = %d to is_alive\n", value);
 	return (*value & 0x80) >> (sizeof(unsigned char)*8 -1);
 }
 
@@ -72,25 +71,19 @@ int is_alive(unsigned char *value){
 //IDEA: would it be faster to calculate neighbours for more than one position, therefore reducing #function calls?
 //NOTE: receives shifted map!! alive neighbours if its MSB is 1, dead if 0
 int count_alive_neighbours_multi(const unsigned char *restrict map, const int ncols, const int index)
-	{
+{
 		// NOTE: indexes that are passed should not be on the edges!
-		int count0 = 0;
-		int count1 = 0;
-		int count2 = 0;
-		int count = 0;
-		// int count3 = 0;
 		// Precompute the row offsets
 		int prev_row = index - ncols;
 		int next_row = index + ncols;
-		count0 = is_alive(&map[index - 1]) + is_alive(&map[index + 1]);
-		count1 = is_alive(&map[prev_row]) + is_alive(&map[prev_row - 1]) + is_alive(&map[prev_row + 1]);
-		count2 = is_alive(&map[next_row]) + is_alive(&map[next_row - 1]) + is_alive(&map[next_row + 1]);
+		int count0 = is_alive(&map[index - 1]) + is_alive(&map[index + 1]);
+		int count1 = is_alive(&map[prev_row]) + is_alive(&map[prev_row - 1]) + is_alive(&map[prev_row + 1]);
+		int count2 = is_alive(&map[next_row]) + is_alive(&map[next_row - 1]) + is_alive(&map[next_row + 1]);
 		// count1 = is_alive(&map[index - ncols]) + is_alive(&map[index + ncols]);
 		// count2 = is_alive(&map[index - ncols - 1]) + is_alive(&map[index - ncols + 1]);
 		// count3 = is_alive(&map[index + ncols - 1]) + is_alive(&map[index + ncols + 1]);
-		// count = count0+count1+count2+count3;
-		return count;  
-	}
+		return count0+count1+count2;  
+}
 
 int count_alive_neighbours_single(const unsigned char *restrict map, const int ncols, const int index)
 {
@@ -113,7 +106,7 @@ void ordered_evolution(unsigned char *restrict map, int ncols, int nrows)
 {
 	int i = 0;
 	int alive_counter = 0;
-    #ifdef _OPENMP
+    	#ifdef _OPENMP
 		#pragma omp parallel for schedule(static) firstprivate(i, alive_counter)
 	#endif
 	    	for (int row = 1; row < nrows-1; row++)
@@ -129,10 +122,11 @@ void ordered_evolution(unsigned char *restrict map, int ncols, int nrows)
 
 
 void shift_old_map(unsigned char *restrict map, const int ncols, const int nrows, const char shift)
+/* Shifts the map by the specified number of positions. */
 {
 	int i = 0;
 	#ifdef _OPENMP
-		#pragma omp for schedule(auto) private(i)
+		#pragma omp for schedule(static) private(i)
 	#endif
 	for(int row=0; row < nrows ; row++){
 		for(int col=0; col < ncols; col++){
@@ -157,40 +151,91 @@ void mask_MSB(unsigned char *restrict map, const int ncols, const int nrows)
 	}
 }
 
+void static_evolution_inner(unsigned char *restrict current,
+                            unsigned char *restrict new,
+                            int ncols, int nrows, int start_row, int end_row) {
+	#pragma omp parallel for collapse(2)
+    	for (int row = start_row; row < end_row; row++) {
+    		for (int col = 1; col < ncols - 1; col++) {
+    	    		int i = row * ncols + col;
+    	    	    	int alive_counter = count_alive_neighbours_multi(current, ncols, i);
+    	    	    	new[i] = update_cell(alive_counter);
+    	    	}
+    	}
+}
+
+void static_evolution_border(unsigned char *restrict current,
+                             unsigned char *restrict new,
+                             int ncols, int nrows) {
+	int rows_to_check[2] = {1, nrows - 2}; // first and last interior rows
+	
+	#pragma omp parallel for
+	for (int r = 0; r < 2; r++) {
+		int row = rows_to_check[r];
+	
+	    	// Interior columns
+	    	for (int col = 1; col < ncols - 1; col++) {
+	    		int i = row * ncols + col;
+	    	    	int alive_counter = count_alive_neighbours_multi(current, ncols, i);
+	    	    	new[i] = update_cell(alive_counter);
+	    	}
+	
+	    	// Left edge
+	    	int i = row * ncols;
+	    	int left = count_alive_neighbours_multi(current, ncols, i);
+	    	new[i] = update_cell(left);
+	
+	    	// Right edge
+	    	i = row * ncols + ncols - 1;
+	    	int right = count_alive_neighbours_multi(current, ncols, i);
+	    	new[i] = update_cell(right);
+	}
+}
+
+void print_map_2(int process_rank, int ncols, int rows_to_receive, unsigned char *map)
+{
+
+	printf("Process %d:\n", process_rank);
+	for (int i = 0; i < rows_to_receive; i++)
+	{
+		for (int j = 0; j < ncols; j++)
+			printf("%4d", map[i * ncols + j]);
+		printf("\n");
+	}
+}
+
 void static_evolution(unsigned char *restrict current, int ncols, int nrows, char shift){
     /*Performs a single step of the update of the map*/
-	//int n_inner_rows = nrows -2;	
-	// int left_border_counter = 0;
-	// int right_border_counter = 0;
 	int i = 0;
 	shift_old_map(current, ncols, nrows, shift);	
-	// int alive_counter = 0;
-
+	printf("\nDEBUG: printing map before loop:\n");
+	print_map_2(0, ncols, nrows, current);
 	#ifdef _OPENMP
-		#pragma omp parallel
+//		#pragma omp parallel
+		#pragma omp parallel num_threads(1)
 	#endif
 	{
 		#ifdef _OPENMP
-			#pragma omp for schedule(static, 4) private(i)
-		#endif	
+			//#pragma omp for schedule(static, 4) private(i)
+			#pragma omp for 
+		#endif
+
 		for(int row=1; row < nrows -1 ; row++){
 			for(int col=1; col<ncols-1; col += CACHE_LINE_SIZE){
-				for(int cc=col; cc<col+CACHE_LINE_SIZE && cc<ncols; cc++){
+				//for(int cc=col; cc<col+CACHE_LINE_SIZE && cc<ncols; cc++){
+				for(int cc=col; cc<col+CACHE_LINE_SIZE && cc<ncols-1; cc++){
 					i = row*ncols+ cc;
+					//printf("DEBUG: i = %d\n", i);
+					if (i == 79){
+						printf("\ni = 79\n");
+					}
 					int alive_counter = count_alive_neighbours_multi(current, ncols, i);
 					current[i] += UPDATE_CELL(alive_counter);
 				}
 			}
 			int left_border_counter = 0;
 			int right_border_counter = 0;
-			// for(int col=1; col < ncols-1; col++){
-			// 	i = row*ncols+ col;
-			// 	int alive_counter = count_alive_neighbours_multi(current, ncols, i);
-			// 	// private_row[col] += count_alive_neighbours_multi(current, ncols, i);
-			// 	current[i] += UPDATE_CELL(alive_counter);
-			// 	// current[i] += UPDATE_CELL(3);
-			// }
-		
+
 			/*Count alive neighbours for left and right
   			 border elements */
 

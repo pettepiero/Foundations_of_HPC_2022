@@ -5,6 +5,7 @@
 #include "read_write_pgm_image.h"
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 int nrows = K_DFLT +2;
 int ncols = K_DFLT; 
@@ -145,7 +146,15 @@ void test_convert_map_to_binary()
     	free(map);
     	// Generating known map
     	map = (unsigned char*)calloc(srows*scols, sizeof(unsigned char));
-    	generate_map(map, "./pgm/seed10test.pgm", 0.2, scols, srows, 10);
+	char *fname;
+	fname = (char *)malloc(strlen("./pgm/seed10test.pgm") + 1);
+	if (fname == NULL)
+	{
+		printf("Error: Could not allocate memory for file name\n");
+		exit(1);
+	}
+	strcpy(fname, "./pgm/seed10test.pgm");
+    	generate_map(map, fname, 0.2, scols, srows, 10);
 //	printf("Generated map:\n");
 //	print_map(0, scols, srows, map);
 	for(int i=0;i <sizeof(expected_generated_map)/sizeof(int); i++){
@@ -374,11 +383,12 @@ void test_static_evolution()
     	//This test is done checking step from known configuration
     	map = (unsigned char*)calloc(srows*scols, sizeof(unsigned char));
     	generate_map(map, "./pgm/seed10test.pgm", 0.2, scols, srows, 10);
-	//print_map(0, scols, srows, map);
+//	print_map(0, scols, srows, map);
  /* Generated map:                                                                                                                    
    0   0   0   1   0   0   0   0   1   0
    0   0   0   1   0   1   0   0   1   0
    1   1   0   0   0   1   0   1   0   0
+
    0   0   0   1   0   0   1   0   0   0
    0   0   1   1   1   0   0   0   0   0
    0   0   0   0   0   0   1   0   0   0
@@ -395,15 +405,18 @@ void test_static_evolution()
 			printf("Invalid test_static_evolution: map[%d]=%d vs 1\n", expected_generated_map[i], map[expected_generated_map[i]]);
 	}
     	unsigned char* map2 = (unsigned char*)calloc(srows*scols, sizeof(unsigned char));
+	mask_MSB(map, scols, srows);	
     	unsigned char* map3 = (unsigned char*)calloc(srows*scols, sizeof(unsigned char));
     
-    	static_evolution(map, scols, srows);
+	char shift = sizeof(unsigned char)*8 -1;
+    	static_evolution(map, scols, srows, shift);
     	update_horizontal_edges(map, scols, srows);
 	/* Set all old MSB to 0 */
-	for(int i=0; i< scols*srows; i++){
-		map[i] = map[i] & 0x7F;
-	}	
-
+	//for(int i=0; i< scols*srows; i++){
+	//	map[i] = map[i] & 0x7F;
+	//}	
+	printf("After static_evolution:\n");
+	print_map(0, scols, srows, map);
 
  /* Known solution:                                                                                                                    
  * 
@@ -436,9 +449,9 @@ void test_static_evolution()
 
 void test_calculate_rows_per_processor(){
 	Env env;
+	env.size_of_cluster = 4;
 	int rows_per_processor[env.size_of_cluster];
 	int start_indices[env.size_of_cluster];
-	env.size_of_cluster = 4;
 	env.nrows = 23;
 	env.k = 21;
 	int known_result[] = {8, 7, 7, 7};
@@ -462,28 +475,76 @@ void test_calculate_cache_padding(){
 	TEST_ASSERT_EQUAL_INT_MESSAGE(0, calculate_cache_padding(k), "Test 3");
 }
 
+void test_UPDATE_CELL(){
+	TEST_ASSERT_EQUAL_INT_MESSAGE(MAXVAL, UPDATE_CELL(2), "Test 1");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(MAXVAL, UPDATE_CELL(3), "Test 2");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(0, UPDATE_CELL(5), "Test 3");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(0, UPDATE_CELL(1), "Test 4");
+}
+
+void test_mask_MSB(){
+    	free(map);
+    	// Generating known map
+    	map = (unsigned char*)calloc(srows*scols, sizeof(unsigned char));
+	for(int i=0; i<scols*srows; i++){
+		map[i] = i+100;	
+	}
+	unsigned char *known_solution= (unsigned char*)calloc(scols*srows, sizeof(unsigned char));
+	for(int i=0; i< scols*srows; i++){
+		if (map[i] >=128){
+			known_solution[i] = i+100 - 128;
+		}
+		else {
+			known_solution[i] = i + 100;
+		}
+	}
+	mask_MSB(map, scols, srows);	
+
+	TEST_ASSERT_EQUAL_CHAR_ARRAY_MESSAGE(known_solution, map, scols*srows, "Error in comparing MSB masked map to known solution");
+}
 
 int main(void)
 {
-    UNITY_BEGIN();
-
-    RUN_TEST(test_update_horizontal_edges);
-    RUN_TEST(test_count_alive_neighbours);
+	UNITY_BEGIN();
+	
+	printf("Running test: test_update_horizontal_edges\n");
+	RUN_TEST(test_update_horizontal_edges);
+	printf("Running test: test_count_alive_neighbours\n");
+	RUN_TEST(test_count_alive_neighbours);
+	printf("Running test: test_is_alive\n");
 	RUN_TEST(test_is_alive);
-    RUN_TEST(test_update_cell);
+	printf("Running test: test_update_cell\n");
+	RUN_TEST(test_update_cell);
+	printf("Running test: test_shift_old_map\n");
 	RUN_TEST(test_shift_old_map);
-    RUN_TEST(test_static_evolution);
-    RUN_TEST(test_convert_map_to_binary);
-    RUN_TEST(test_convert_map_to_char);
+	printf("Running test: test_static_evolution\n");
+	RUN_TEST(test_static_evolution);
+	printf("Running test: test_convert_map_to_binary\n");
+	RUN_TEST(test_convert_map_to_binary);
+	printf("Running test: test_convert_map_to_char\n");
+	RUN_TEST(test_convert_map_to_char);
+	printf("Running test: test_command_line_parser1\n");
 	RUN_TEST(test_command_line_parser1);
+	printf("Running test: test_command_line_parser2\n");
 	RUN_TEST(test_command_line_parser2);
+	printf("Running test: test_command_line_parser3\n");
 	RUN_TEST(test_command_line_parser3);
+	printf("Running test: test_command_line_parser4\n");
 	RUN_TEST(test_command_line_parser4);
+	printf("Running test: test_command_line_parser5\n");
 	RUN_TEST(test_command_line_parser5);
+	printf("Running test: test_initialize_env_variable\n");
 	RUN_TEST(test_initialize_env_variable);
+	printf("Running test: test_calculate_rows_per_processor\n");
 	RUN_TEST(test_calculate_rows_per_processor);
+	printf("Running test: test_calculate_cache_padding\n");
 	RUN_TEST(test_calculate_cache_padding);
-    UNITY_END();
+	printf("Running test: test_UPDATE_CELL\n");
+	RUN_TEST(test_UPDATE_CELL);
+	printf("Running test: test_mask_MSB\n");
+	RUN_TEST(test_mask_MSB);
 
-    return 0;
+	UNITY_END();
+
+    	return 0;
 }

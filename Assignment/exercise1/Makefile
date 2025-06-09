@@ -1,4 +1,4 @@
-CC = mpicc 
+CC = mpicc  
 CFLAGS = -Wall -fstrict-aliasing -Wstrict-aliasing -DUSE_MPI -fno-omit-frame-pointer 
 SRCDIR = src
 BINDIR = build
@@ -9,10 +9,14 @@ OBJDIR = $(BINDIR)/objs
 SRCS = $(wildcard $(SRCDIR)/*.c)
 OBJS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
 EXEC = $(BINDIR)/gol.x
-OMP_FLAGS = 
+OMP_FLAGS = -fopenmp
 
 default: OMP_FLAGS = -fopenmp
 default: $(EXEC)
+
+serial: $(OBJS)
+	$(CC) -pg -O0 $(CFLAGS) $(OMP_FLAGS) $(OBJS) -o $(BINDIR)/serial-gol.x
+	
 
 dirs:
 	mkdir -p $(BINDIR) $(OBJDIR) $(IMGDIR) $(SNPDIR)

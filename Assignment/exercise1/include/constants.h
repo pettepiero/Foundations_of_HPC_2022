@@ -48,3 +48,5 @@ typedef struct {
 #endif
 
 #endif  // CONSTANTS_H
+
+#define UPDATE_CELL(count) ((count == 3 || count == 2) ? 1 : 0) // Example logic
