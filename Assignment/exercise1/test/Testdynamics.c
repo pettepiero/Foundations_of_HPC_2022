@@ -74,7 +74,7 @@ void test_command_line_parser3(void){
     		char *argv3[] = { "program_name", "-i", "-k", "50" };
     		int argc3 = 4;
     		command_line_parser(&env, &fname, argc3, argv3);
-    		TEST_ASSERT_EQUAL_MESSAGE(50, env.k, "Test 3");
+    		TEST_ASSERT_EQUAL_MESSAGE(64, env.k, "Test 3"); //consider cache padding
 }
 void test_command_line_parser4(void){
 		optind = 1;
