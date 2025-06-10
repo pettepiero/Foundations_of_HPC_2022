@@ -383,28 +383,25 @@ void test_static_evolution()
     	//This test is done checking step from known configuration
     	map = (unsigned char*)calloc(srows*scols, sizeof(unsigned char));
     	generate_map(map, "./pgm/seed10test.pgm", 0.2, scols, srows, 10);
-//	print_map(0, scols, srows, map);
- /* Generated map:                                                                                                                    
-   0   0   0   1   0   0   0   0   1   0
-   0   0   0   1   0   1   0   0   1   0
-   1   1   0   0   0   1   0   1   0   0
-
-   0   0   0   1   0   0   1   0   0   0
-   0   0   1   1   1   0   0   0   0   0
-   0   0   0   0   0   0   1   0   0   0
-   0   0   0   0   1   1   0   1   0   0
-   0   0   0   0   0   0   0   0   0   1
-   1   0   0   0   0   1   0   0   0   1
-   0   0   0   1   0   1   1   0   0   1
-   0   0   0   1   0   0   0   0   1   0
-   0   0   0   1   0   1   0   0   1   0
- */   
+ 	/* Generated map:                                                                                                                    
+ 	  0   0   0   1   0   0   0   0   1   0
+ 	  0   0   0   1   0   1   0   0   1   0
+ 	  1   1   0   0   0   1   0   1   0   0
+ 	  0   0   0   1   0   0   1   0   0   0
+ 	  0   0   1   1   1   0   0   0   0   0
+ 	  0   0   0   0   0   0   1   0   0   0
+ 	  0   0   0   0   1   1   0   1   0   0
+ 	  0   0   0   0   0   0   0   0   0   1
+ 	  1   0   0   0   0   1   0   0   0   1
+ 	  0   0   0   1   0   1   1   0   0   1
+ 	  0   0   0   1   0   0   0   0   1   0
+ 	  0   0   0   1   0   1   0   0   1   0
+ 	*/   
 /* quick and not full test to verify if generated map is completely wrong */	
 	for(int i=0;i <sizeof(expected_generated_map)/sizeof(int); i++){
 		if(map[expected_generated_map[i]] != 1)
 			printf("Invalid test_static_evolution: map[%d]=%d vs 1\n", expected_generated_map[i], map[expected_generated_map[i]]);
 	}
-    	unsigned char* map2 = (unsigned char*)calloc(srows*scols, sizeof(unsigned char));
 	mask_MSB(map, scols, srows);	
     	unsigned char* map3 = (unsigned char*)calloc(srows*scols, sizeof(unsigned char));
     
@@ -415,24 +412,23 @@ void test_static_evolution()
 	//for(int i=0; i< scols*srows; i++){
 	//	map[i] = map[i] & 0x7F;
 	//}	
-	printf("After static_evolution:\n");
-	print_map(0, scols, srows, map);
+//	printf("After static_evolution:\n");
+//	print_map(0, scols, srows, map);
 
- /* Known solution:                                                                                                                    
- * 
-   0   0   1   1   0   1   1   1   1   1
-   1   1   1   0   0   0   1   1   1   1
-   0   0   1   1   0   1   0   1   1   1  
-   1   1   0   1   0   1   1   1   0   0
-   0   0   1   1   1   1   1   1   0   0
-   0   0   1   0   0   0   1   1   0   0
-   0   0   0   0   0   1   1   0   1   0 
-   1   0   0   0   1   1   1   0   1   1
-   1   0   0   0   1   1   1   0   1   1
-   1   0   1   0   0   1   1   1   1   1
-   0   0   1   1   0   1   1   1   1   1
-   1   1   1   0   0   0   1   1   1   1
- */   
+ 	/* Known solution:* 
+ 	  0   0   1   1   0   1   1   1   1   1
+ 	  1   1   1   0   0   0   1   1   1   1
+ 	  0   0   1   1   0   1   0   1   1   1  
+ 	  1   1   0   1   0   1   1   1   0   0
+ 	  0   0   1   1   1   1   1   1   0   0
+ 	  0   0   1   0   0   0   1   1   0   0
+ 	  0   0   0   0   0   1   1   0   1   0 
+ 	  1   0   0   0   1   1   1   0   1   1
+ 	  1   0   0   0   1   1   1   0   1   1
+ 	  1   0   1   0   0   1   1   1   1   1
+ 	  0   0   1   1   0   1   1   1   1   1
+ 	  1   1   1   0   0   0   1   1   1   1
+ 	*/   
 
 	int active_bits[] = {2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 16, 17, 18, 19, 22, 23, 25, 27, 28, 29, 30, 31, 33, 35, 36, 37, 42, 43, 44, 45, 46, 47, 52, 56, 57, 65, 66, 68, 70, 74, 75, 76, 78, 79, 80, 84, 85, 86, 88, 89, 90, 92, 95, 96, 97, 98, 99, 102, 103, 105, 106, 107, 108, 109, 110, 111, 112, 116, 117, 118, 119}; 
 
@@ -440,12 +436,88 @@ void test_static_evolution()
     	{
     	    map3[active_bits[i]] = 1;
     	}
+//	printf("Known solution:\n");
+//	print_map(0, scols, srows, map3);
     	//Check each element
     	for(int i = 0; i < srows*scols; i++){
     	    	TEST_ASSERT_EQUAL_CHAR_MESSAGE(map3[i], map[i], "This was test 1");
     	}
 }
 
+
+
+
+
+
+
+void test_static_evolution_inner(){
+	if( (srows != 12) || (scols != 10))
+		printf("Error -> test_static_evolution can only be checked for srows=12, scols=101n");
+	
+    	//This test is done checking step from known configuration
+    	map = (unsigned char*)calloc(srows*scols, sizeof(unsigned char));
+    	generate_map(map, "./pgm/seed10test.pgm", 0.2, scols, srows, 10);
+ 	/* Generated map:                                                                                                                    
+ 	  0   0   0   1   0   0   0   0   1   0
+ 	  0   0   0   1   0   1   0   0   1   0
+ 	  1   1   0   0   0   1   0   1   0   0
+ 	  0   0   0   1   0   0   1   0   0   0
+ 	  0   0   1   1   1   0   0   0   0   0
+ 	  0   0   0   0   0   0   1   0   0   0
+ 	  0   0   0   0   1   1   0   1   0   0
+ 	  0   0   0   0   0   0   0   0   0   1
+ 	  1   0   0   0   0   1   0   0   0   1
+ 	  0   0   0   1   0   1   1   0   0   1
+ 	  0   0   0   1   0   0   0   0   1   0
+ 	  0   0   0   1   0   1   0   0   1   0
+ 	*/   
+/* quick and not full test to verify if generated map is completely wrong */	
+	for(int i=0;i <sizeof(expected_generated_map)/sizeof(int); i++){
+		if(map[expected_generated_map[i]] != 1)
+			printf("Invalid test_static_evolution: map[%d]=%d vs 1\n", expected_generated_map[i], map[expected_generated_map[i]]);
+	}
+	mask_MSB(map, scols, srows);	
+    	unsigned char* map3 = (unsigned char*)calloc(srows*scols, sizeof(unsigned char));
+	int start_row = 3;
+	int end_row = 8;
+ 	/* Known solution: 
+ 	  0   0   0   1   0   0   0   0   1   0
+ 	  0   0   0   1   0   1   0   0   1   0
+ 	  1   1   0   0   0   1   0   1   0   0
+ 	  1   1   0   1   0   1   1   1   0   0
+ 	  0   0   1   1   1   1   1   1   0   0
+ 	  0   0   1   0   0   0   1   1   0   0
+ 	  0   0   0   0   0   1   1   0   1   0
+ 	  1   0   0   0   1   1   1   0   1   1
+ 	  1   0   0   0   1   1   1   0   1   1
+ 	  0   0   0   1   0   1   1   0   0   1
+ 	  0   0   0   1   0   0   0   0   1   0
+ 	  0   0   0   1   0   1   0   0   1   0
+ 	*/   
+
+	/*int active_bits[] = {2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 16, 17, 18, 19, 22, 23, 25, 27, 28, 29, 30, 31, 33, 35, 36, 37, 42, 43, 44, 45, 46, 47, 52, 56, 57, 65, 66, 68, 70, 74, 75, 76, 78, 79, 80, 84, 85, 86, 88, 89, 90, 92, 95, 96, 97, 98, 99, 102, 103, 105, 106, 107, 108, 109, 110, 111, 112, 116, 117, 118, 119}; */
+	int active_bits[] = {3, 8, 13, 15, 18, 20, 21, 25, 27, 30, 31, 33, 35, 36, 37, 42, 43, 44, 45, 46, 47, 52, 56, 57, 65, 66, 68, 70, 74, 75, 76, 78, 79, 80, 84, 85, 86, 88, 89, 93, 95, 96, 99, 103, 108, 113, 115, 118}; 
+
+	char shift = sizeof(unsigned char)*8 -1;
+    	for(int i = 0; i <sizeof(active_bits)/sizeof(int); i++)
+    	{
+    	    	map3[active_bits[i]] = 1;
+    	}
+	for(int i = 0; i < scols*start_row; i++){
+		map3[i] = map[i];
+	}
+	for(int i = scols*(end_row+1); i < scols*srows; i++){
+		map3[i] = map[i];
+	}
+	update_horizontal_edges(map3, scols, srows);
+    	static_evolution_inner(map, scols, srows, start_row, end_row, shift);
+    	update_horizontal_edges(map, scols, srows);
+
+    	//Check each element
+    	for(int i = 0; i < srows*scols; i++){
+    	    	TEST_ASSERT_EQUAL_CHAR_MESSAGE(map3[i], map[i], "This was test 1");
+    	}
+}
 
 void test_calculate_rows_per_processor(){
 	Env env;
@@ -519,6 +591,8 @@ int main(void)
 	RUN_TEST(test_shift_old_map);
 	printf("Running test: test_static_evolution\n");
 	RUN_TEST(test_static_evolution);
+	printf("Running test: test_static_evolution_inner\n");
+	RUN_TEST(test_static_evolution_inner);
 	printf("Running test: test_convert_map_to_binary\n");
 	RUN_TEST(test_convert_map_to_binary);
 	printf("Running test: test_convert_map_to_char\n");
