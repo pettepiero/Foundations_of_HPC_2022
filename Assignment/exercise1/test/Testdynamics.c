@@ -519,6 +519,76 @@ void test_static_evolution_inner(){
     	}
 }
 
+
+void test_static_evolution_border(){
+	if( (srows != 12) || (scols != 10))
+		printf("Error -> test_static_evolution can only be checked for srows=12, scols=101n");
+	
+    	//This test is done checking step from known configuration
+    	map = (unsigned char*)calloc(srows*scols, sizeof(unsigned char));
+    	generate_map(map, "./pgm/seed10test.pgm", 0.2, scols, srows, 10);
+ 	/* Generated map:                                                                                                                    
+ 	  0   0   0   1   0   0   0   0   1   0
+ 	  0   0   0   1   0   1   0   0   1   0
+ 	  1   1   0   0   0   1   0   1   0   0
+ 	  0   0   0   1   0   0   1   0   0   0
+ 	  0   0   1   1   1   0   0   0   0   0
+ 	  0   0   0   0   0   0   1   0   0   0
+ 	  0   0   0   0   1   1   0   1   0   0
+ 	  0   0   0   0   0   0   0   0   0   1
+ 	  1   0   0   0   0   1   0   0   0   1
+ 	  0   0   0   1   0   1   1   0   0   1
+ 	  0   0   0   1   0   0   0   0   1   0
+ 	  0   0   0   1   0   1   0   0   1   0
+ 	*/   
+/* quick and not full test to verify if generated map is completely wrong */	
+	for(int i=0;i <sizeof(expected_generated_map)/sizeof(int); i++){
+		if(map[expected_generated_map[i]] != 1)
+			printf("Invalid test_static_evolution: map[%d]=%d vs 1\n", expected_generated_map[i], map[expected_generated_map[i]]);
+	}
+	mask_MSB(map, scols, srows);	
+    	unsigned char* map3 = (unsigned char*)calloc(srows*scols, sizeof(unsigned char));
+	int start_row = 3;
+	int end_row = 8;
+ 	/* Known solution: 
+ 	  0   0   0   1   0   0   0   0   1   0
+ 	  1   1   1   0   0   0   1   1   1   1
+ 	  1   1   0   0   0   1   0   1   0   0
+ 	  1   1   0   1   0   1   1   1   0   0
+ 	  0   0   1   1   1   1   1   1   0   0
+ 	  0   0   1   0   0   0   1   1   0   0
+ 	  0   0   0   0   0   1   1   0   1   0
+ 	  1   0   0   0   1   1   1   0   1   1
+ 	  1   0   0   0   1   1   1   0   1   1
+ 	  0   0   0   1   0   1   1   0   0   1
+ 	  0   0   1   1   0   1   1   1   1   1
+ 	  0   0   0   1   0   1   0   0   1   0
+ 	*/   
+
+	int active_bits_row_1[] = {10, 11, 12, 16, 17, 18, 19};
+	int active_bits_sec_last_row[] = {102, 103, 105, 106, 107, 108, 109};
+	char shift = sizeof(unsigned char)*8 -1;
+    	for(int i = 0; i <sizeof(active_bits_row_1)/sizeof(int); i++)
+    	{
+    	    	map3[active_bits_row_1[i]] = 1;
+    	}
+    	for(int i = 0; i <sizeof(active_bits_sec_last_row)/sizeof(int); i++)
+    	{
+    	    	map3[active_bits_sec_last_row[i]] = 1;
+    	}
+	update_horizontal_edges(map3, scols, srows);
+    	static_evolution_border(map, scols, srows, shift);
+    	update_horizontal_edges(map, scols, srows);
+
+    	//Check each element
+    	for(int i = 0; i < scols; i++){
+    	    	TEST_ASSERT_EQUAL_CHAR_MESSAGE(map3[scols+i], map[scols+i], "This was test 1");
+    	    	TEST_ASSERT_EQUAL_CHAR_MESSAGE(map3[(srows-2)*scols+i], map[(srows-2)*scols+i], "This was test 2");
+    	}
+
+}
+
+
 void test_calculate_rows_per_processor(){
 	Env env;
 	env.size_of_cluster = 4;
@@ -593,6 +663,8 @@ int main(void)
 	RUN_TEST(test_static_evolution);
 	printf("Running test: test_static_evolution_inner\n");
 	RUN_TEST(test_static_evolution_inner);
+	printf("Running test: test_static_evolution_border\n");
+	RUN_TEST(test_static_evolution_border);
 	printf("Running test: test_convert_map_to_binary\n");
 	RUN_TEST(test_convert_map_to_binary);
 	printf("Running test: test_convert_map_to_char\n");

@@ -11,11 +11,9 @@ int             count_alive_neighbours_single(unsigned char *restrict map, int s
 char            update_cell(int alive_neighbours);
 void 		ordered_evolution(unsigned char *restrict map, int ncols, int nrows);
 void 		static_evolution_inner(unsigned char *restrict current,
-                            //int ncols, int start_row, int end_row); 
-                            int ncols, int nrows, int start_row, int end_row, char shift); 
+                            int ncols, int nrows, char shift); 
 void 		static_evolution_border(unsigned char *restrict current,
-                             unsigned char *restrict new,
-                             int ncols, int nrows);
+                             int ncols, int nrows, char shift);
 void            static_evolution(unsigned char *restrict current, int ncols, int nrows, char shift);
 void		update_horizontal_edges(unsigned char *restrict map, const int ncols, const int nrows);
 void            init_to_zero(unsigned char *restrict map1, const int k);

@@ -41,7 +41,6 @@ int main(int argc, char** argv)
 	void *map1 = NULL;
 	unsigned char *map1_char = NULL;
 	unsigned char *sub_map = NULL;
-	unsigned char *sub_map_copy = NULL;
 	char snapshot_name[100];
 	const char *snapshot_folder_path = "images/snapshots";
 	char *fname  = NULL;
@@ -172,7 +171,6 @@ int main(int argc, char** argv)
 	} else if (env.e == STATIC){
 		/*Allocate space for local maps*/
 		sub_map = (unsigned char*)malloc(env.my_process_rows*env.k*sizeof(unsigned char));
-		sub_map_copy = (unsigned char*)malloc(env.my_process_rows*env.k*sizeof(unsigned char));
 		if (sub_map == NULL){
 			printf("Process %d error: Could not allocate memory for local maps\n", process_rank);
 			exit(1);
@@ -180,19 +178,21 @@ int main(int argc, char** argv)
 
 		/* Initialize local sub matrices with OpenMP, to warm up the data properly*/
 		#ifdef _OPENMP
-			/*#pragma omp parallel for schedule(static, 4)*/
-			#pragma omp parallel for schedule(static)
+			#pragma omp parallel for schedule(static, 4)
 		#endif
 		for (int i=0; i<env.my_process_rows*env.k; i++){
 			sub_map[i] = 0;	
 		}
+
 		/* Process 0 sends initial submap to every MPI process */	
 		if (process_rank == 0){
 			tstart = CPU_TIME;
 			for (int rank = 1; rank < env.size_of_cluster; rank++) {
 				MPI_Send(map1_char + start_indices[rank]*env.k, rows_per_processor[rank]*env.k, MPI_UNSIGNED_CHAR, rank, 0, MPI_COMM_WORLD);
 			}
-			memcpy(sub_map + start_indices[process_rank]*env.k, map1_char, env.my_process_rows*env.k);
+		//	memcpy(sub_map + start_indices[process_rank]*env.k, map1_char, env.my_process_rows*env.k);
+			memcpy(sub_map, map1_char + start_indices[process_rank]*env.k, env.my_process_rows * env.k);
+
 		} else {
 			MPI_Recv(sub_map, env.my_process_rows * env.k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		}
@@ -219,30 +219,23 @@ int main(int argc, char** argv)
 					MPI_Isend(&sub_map[1 * env.k], env.k, MPI_UNSIGNED_CHAR, prev_processor, 1, MPI_COMM_WORLD, &requests[2]); // my first real row
 					MPI_Isend(&sub_map[(env.my_process_rows - 2) * env.k], env.k, MPI_UNSIGNED_CHAR, next_processor, 0, MPI_COMM_WORLD, &requests[3]); // my last real row
 
-					shift_old_map(sub_map, env.k, env.my_process_rows, shift);
-					static_evolution_inner(sub_map, sub_map_copy, env.k, 2, env.my_process_rows -2);
+					//shift_old_map(sub_map, env.k, env.my_process_rows, shift);
+					static_evolution_inner(sub_map, env.k, env.my_process_rows, shift);
 					MPI_Waitall(4, requests, MPI_STATUSES_IGNORE);
 
-					static_evolution_border(sub_map, sub_map_copy, env.k, env.my_process_rows);
-
-				//	MPI_Send(sub_map + env.k, env.k, MPI_UNSIGNED_CHAR, prev_processor , 0, MPI_COMM_WORLD);
-				//	MPI_Send(sub_map + (env.my_process_rows-2)*env.k, env.k, MPI_UNSIGNED_CHAR, next_processor, 0, MPI_COMM_WORLD);
-				//	MPI_Recv(sub_map, env.k, MPI_UNSIGNED_CHAR, prev_processor, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE); 
-				//	MPI_Recv(sub_map + (env.my_process_rows -1)*env.k, env.k, MPI_UNSIGNED_CHAR, next_processor, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE); 
+					static_evolution_border(sub_map, env.k, env.my_process_rows, shift);
 		        	}
-
-//				printf("\rExecuted steps: %d%%\n", (100*i)/env.n);
-//    				fflush(stdout);
 
 				/* Process 0 takes screenshot */
 				if (process_rank == 0){
 					gather_submaps(map1_char, env, start_indices, rows_per_processor);
-					memcpy(map1_char + start_indices[process_rank] * env.k, sub_map, env.my_process_rows * env.k);
+					//memcpy(map1_char + start_indices[process_rank] * env.k, sub_map, env.my_process_rows * env.k);
 					//memcpy(map1_char, sub_map, env.my_process_rows);
+					memcpy(map1_char + (start_indices[process_rank] + 1) * env.k, sub_map + env.k, (env.my_process_rows - 2) * env.k);
+
 					update_horizontal_edges(map1_char, env.k, env.nrows);
 					sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", i + env.s - 1);
 					write_pgm_image(map1_char, MAXVAL, env.k, env.nrows, snapshot_name);
-					printf("\nWritten image: %s", snapshot_name);
    				} else {
 					send_submaps(sub_map, env, rows_per_processor, process_rank);
 				}
@@ -253,65 +246,48 @@ int main(int argc, char** argv)
 				printf("DEBUG: Starting evolution with env.k = %d\n", env.k);
 			}
 	    		for (int i = 0; i < env.n; i++) {
-				//// Perform evolution in parallel
-				//static_evolution(sub_map, env.k, env.my_process_rows, shift);
-				//// Swapping second top and second last rows with neighbours
-				//MPI_Sendrecv(sub_map + env.k, env.k, MPI_UNSIGNED_CHAR, prev_processor, 0,
-				//			sub_map + (env.my_process_rows - 1) * env.k, env.k, MPI_UNSIGNED_CHAR, next_processor, 0,
-				//			MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				//MPI_Sendrecv(sub_map + (env.my_process_rows - 2) * env.k, env.k, MPI_UNSIGNED_CHAR, next_processor, 0,
-				//			sub_map, env.k, MPI_UNSIGNED_CHAR, prev_processor, 0,
-				//			MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				MPI_Request requests[4];
-    				// Exchange ghost rows with neighbors
-    				// Receive top ghost row (row 0 of sub_map) from above
-    				MPI_Irecv(&sub_map[0], env.k, MPI_UNSIGNED_CHAR, prev_processor, 0, MPI_COMM_WORLD, &requests[0]);
-    				// Receive bottom ghost row (last row of sub_map) from below
-    				MPI_Irecv(&sub_map[(env.my_process_rows - 1) * env.k], env.k, MPI_UNSIGNED_CHAR, next_processor, 1, MPI_COMM_WORLD, &requests[1]);
-    				// Send my first real row (row 1) to above (they'll store it as their bottom ghost)
-    				MPI_Isend(&sub_map[1 * env.k], env.k, MPI_UNSIGNED_CHAR, prev_processor, 1, MPI_COMM_WORLD, &requests[2]);
-    				// Send my last real row (row my_process_rows - 2) to below (they'll store it as top ghost)
-    				MPI_Isend(&sub_map[(env.my_process_rows - 2) * env.k], env.k, MPI_UNSIGNED_CHAR, next_processor, 0, MPI_COMM_WORLD, &requests[3]);
-    				// Compute inner rows (that don't depend on ghost rows)
-    				// Rows: 2 to (my_process_rows - 3), inclusive
-				double t0 = omp_get_wtime();
+			//	// Perform evolution in parallel
+			//	MPI_Request requests[4];
+    			//	// Exchange ghost rows with neighbors
+    			//	// Receive top ghost row (row 0 of sub_map) from above
+    			//	MPI_Irecv(&sub_map[0], env.k, MPI_UNSIGNED_CHAR, prev_processor, 0, MPI_COMM_WORLD, &requests[0]);
+    			//	// Receive bottom ghost row (last row of sub_map) from below
+    			//	MPI_Irecv(&sub_map[(env.my_process_rows - 1) * env.k], env.k, MPI_UNSIGNED_CHAR, next_processor, 1, MPI_COMM_WORLD, &requests[1]);
+    			//	// Send my first real row (row 1) to above (they'll store it as their bottom ghost)
+    			//	MPI_Isend(&sub_map[1 * env.k], env.k, MPI_UNSIGNED_CHAR, prev_processor, 1, MPI_COMM_WORLD, &requests[2]);
+    			//	// Send my last real row (row my_process_rows - 2) to below (they'll store it as top ghost)
+    			//	MPI_Isend(&sub_map[(env.my_process_rows - 2) * env.k], env.k, MPI_UNSIGNED_CHAR, next_processor, 0, MPI_COMM_WORLD, &requests[3]);
+    			//	// Compute inner rows (that don't depend on ghost rows)
+    			//	// Rows: 2 to (my_process_rows - 3), inclusive
+			//	double t0 = omp_get_wtime();
 
-				shift_old_map(sub_map, env.k, env.my_process_rows, shift);
-    				static_evolution_inner(sub_map, sub_map_copy, env.k, 2, env.my_process_rows - 2);
-				double t1 = omp_get_wtime();
-				if (process_rank == 0) printf("Time: %f seconds\n", t1 - t0);
-    				// Wait for halo exchanges to complete before border updates
-    				MPI_Waitall(4, requests, MPI_STATUSES_IGNORE);
-    				// Compute top and bottom border rows (row 1 and row my_process_rows - 2)
-    				static_evolution_border(sub_map, sub_map_copy, env.k, env.my_process_rows);
-    				// Copy new map into current
-    				memcpy(sub_map, sub_map_copy, env.my_process_rows * env.k * sizeof(unsigned char));
+			//	shift_old_map(sub_map, env.k, env.my_process_rows, shift);
+    			//	static_evolution_inner(sub_map, env.k, env.my_process_rows, shift);
+			//	double t1 = omp_get_wtime();
+			//	if (process_rank == 0) printf("Time: %f seconds\n", t1 - t0);
+    			//	// Wait for halo exchanges to complete before border updates
+
+    			//	MPI_Waitall(4, requests, MPI_STATUSES_IGNORE);
+    			//	// Compute top and bottom border rows (row 1 and row my_process_rows - 2)
+    			//	static_evolution_border(sub_map, env.k, env.my_process_rows, shift);
+    			//	// Copy new map into current
 	
 			}
 			if (process_rank == 0){
 				gather_submaps(map1_char, env, start_indices, rows_per_processor);
 				memcpy(map1_char + start_indices[process_rank] * env.k, sub_map, env.my_process_rows * env.k);
-			    tend = CPU_TIME;
-			    ex_time = tend-tstart;
+			    	tend = CPU_TIME;
+			    	ex_time = tend-tstart;
 				printf("%d steps of the evolution took %f seconds\n", env.n, ex_time);
-			    printf("\n\n%f\n\n", ex_time);
-			sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", env.n - 1);
+				printf("\n\n%f\n\n", ex_time);
+				sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", env.n - 1);
 				convert_map_to_char(map1_char, env.k, env.nrows);
-			write_pgm_image(map1_char, MAXVAL, env.k, env.nrows, snapshot_name);
+				write_pgm_image(map1_char, MAXVAL, env.k, env.nrows, snapshot_name);
 	   		} else {
 				send_submaps(sub_map, env, rows_per_processor, process_rank);
 			}
 		}
 
-		printf("\nDEBUG: printing map1_char:\n");
-		for (int i=0; i<env.nrows; i++){
-			for (int j=0; j<env.k; j++){
-				printf("%d ", map1_char[i*env.k + j]);
-			}
-			printf("\n");
-		}
-
-		    
 		/* Free sub_map in each process */
 		free(sub_map);
 		sub_map = NULL;
@@ -325,8 +301,8 @@ int main(int argc, char** argv)
 		ex_time = tend-tstart;
 		printf("\n\n%f\n\n", ex_time);
 	}
-    MPI_Type_free(&mpi_env_type);
+	MPI_Type_free(&mpi_env_type);
 	MPI_Finalize();
 
-    return 0;
+	return 0;
 }

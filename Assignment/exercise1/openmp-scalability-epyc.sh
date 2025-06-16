@@ -2,9 +2,8 @@
 #SBATCH -A dssc
 #SBATCH --job-name=openmp-scal
 #SBATCH --partition=EPYC
-#SBATCH --nodelist=epyc006
+#SBATCH --nodelist=epyc001
 #SBATCH --time=02:00:0
-#SBATCH --exclusive
 #SBATCH --cpus-per-task=64
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=2
@@ -36,11 +35,12 @@ max_num_threads=64
 export OMP_PLACES=cores
 export OMP_PROC_BIND=close
 echo "OMP_PLACES = $OMP_PLACES , OMP_PROC_BIND = $OMP_PROC_BIND"
+export OMP_DISPLAY_ENV=verbose
 
 echo "dim,nthreads,time" > "$output_file"
 #for dim in 10000 15000 20000
-#for dim in 1000 2000 4000 8000 16000
-for dim in 30000 
+for dim in 2000 4000 8000 16000
+#for dim in 30000 
 do
         echo "Using dimension $dim"
         echo "Running with 1 to 64 cores per socket"
@@ -50,7 +50,6 @@ do
             echo "Running with $i threads"
             export OMP_NUM_THREADS=$i
             
-            #output=$(mpirun -n 1 --map-by socket ./build/gol.x -i -e $evolution -n $num_steps -k $dim -s 0)
             output=$(./build/gol.x -i -e $evolution -k $dim -s 0)
             time=$(echo "$output" | tail -n 1)
             echo "$dim,$i,$time" >> "$output_file"

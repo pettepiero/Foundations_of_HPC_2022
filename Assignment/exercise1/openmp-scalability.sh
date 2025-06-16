@@ -6,7 +6,6 @@
 #SBATCH --time=02:00:0
 #SBATCH --cpus-per-task=12
 #SBATCH --nodes=1
-#SBATCH --ntasks=1
 #SBATCH --output=./outputs/slurm-%j-openmp-scal.txt
 
 module load openMPI/4.1.6
@@ -46,7 +45,6 @@ do
             echo "Running with $i threads"
             export OMP_NUM_THREADS=$i
             
-            #output=$(mpirun -n 1 ./build/gol.x -i -e $evolution -k $dim -s 0)
             output=$(./build/gol.x -i -e $evolution -k $dim -s 0)
             time=$(echo "$output" | tail -n 1)
             echo "$dim,$i,$time" >> "$output_file"
