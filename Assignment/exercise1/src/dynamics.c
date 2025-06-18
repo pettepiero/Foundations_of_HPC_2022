@@ -234,7 +234,7 @@ void static_evolution_inner(unsigned char *restrict current,
 		exit(0);
 	}
 	shift_old_map(current, ncols, nrows, shift);	
-	int i = 0, alive_counter=0;
+	int i = 0;
 
 	/*Set LSB to 1 for not updated cells that are already 1*/
 	for (int row=1; row<start_row; row++){
@@ -355,16 +355,20 @@ void static_evolution(unsigned char *restrict current, int ncols, int nrows, cha
 //	printf("\nDEBUG: printing map before loop:\n");
 //	print_map_2(0, ncols, nrows, current);
 	#ifdef _OPENMP
-		#pragma omp parallel
+		#pragma omp parallel 
 	#endif
 	{
 		#ifdef _OPENMP
-			#pragma omp for schedule(static, 4) private(i)
+			#pragma omp for schedule(dynamic) private(i) 
 		#endif
-
+		//for(int row=1; row<nrows-1;row++){
+		//	for(int col=1; col < ncols-1; col++){
+		//		i = row*ncols+col;
+		//		int alive_counter = count_alive_neighbours_multi(current, ncols, i);
+		//		current[i] += UPDATE_CELL(alive_counter);
+		//	}
 		for(int row=1; row < nrows -1 ; row++){
 			for(int col=1; col<ncols-1; col += CACHE_LINE_SIZE){
-				//for(int cc=col; cc<col+CACHE_LINE_SIZE && cc<ncols; cc++){
 				for(int cc=col; cc<col+CACHE_LINE_SIZE && cc<ncols-1; cc++){
 					i = row*ncols+ cc;
 					int alive_counter = count_alive_neighbours_multi(current, ncols, i);
@@ -381,9 +385,6 @@ void static_evolution(unsigned char *restrict current, int ncols, int nrows, cha
 			left_border_counter = 0;
 			right_border_counter = 0;
 
-			int r = row, c = 0;
-			i = r * ncols + c;
-			
 			left_border_counter += is_alive(&current[i-1]);	
 			left_border_counter += is_alive(&current[i+1]);
 			left_border_counter += is_alive(&current[i+ncols-1]);

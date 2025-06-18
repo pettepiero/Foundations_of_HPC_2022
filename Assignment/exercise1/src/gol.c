@@ -23,7 +23,7 @@ double  ex_time1;
 
 int main(int argc, char** argv)
 {
-
+	omp_set_dynamic(0);
 	/**************************************************************************
 	 * MPI Initialization
 	 **************************************************************************/
@@ -177,12 +177,12 @@ int main(int argc, char** argv)
 		}
 
 		/* Initialize local sub matrices with OpenMP, to warm up the data properly*/
-		#ifdef _OPENMP
-			#pragma omp parallel for schedule(static, 4)
+		/*#ifdef _OPENMP
+			#pragma omp parallel for schedule(auto)
 		#endif
 		for (int i=0; i<env.my_process_rows*env.k; i++){
 			sub_map[i] = 0;	
-		}
+		}*/
 
 		/* Process 0 sends initial submap to every MPI process */	
 		if (process_rank == 0){
@@ -212,18 +212,27 @@ int main(int argc, char** argv)
 			for (int i = 0; i < env.n; i += env.s) {
 				/* Inner loop, iterations that do not need screenshot */
 				for (int j = 0; j < env.s && i + j < env.n; j++) {
-					MPI_Request requests[4];
+	                                static_evolution(sub_map, env.k, env.my_process_rows, shift);
+                                        // Swapping second top and second last rows with neighbours
+                                        MPI_Sendrecv(sub_map + env.k, env.k, MPI_UNSIGNED_CHAR, prev_processor, 0,
+                                                sub_map + (env.my_process_rows - 1) * env.k, env.k, MPI_UNSIGNED_CHAR, next_processor, 0,
+                                                MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                                        MPI_Sendrecv(sub_map + (env.my_process_rows - 2) * env.k, env.k, MPI_UNSIGNED_CHAR, next_processor, 0,
+                                                sub_map, env.k, MPI_UNSIGNED_CHAR, prev_processor, 0,
+                                                MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-					MPI_Irecv(&sub_map[0], env.k, MPI_UNSIGNED_CHAR, prev_processor, 0, MPI_COMM_WORLD, &requests[0]); // top ghost
-					MPI_Irecv(&sub_map[(env.my_process_rows - 1) * env.k], env.k, MPI_UNSIGNED_CHAR, next_processor, 1, MPI_COMM_WORLD, &requests[1]); // bottom ghost
-					MPI_Isend(&sub_map[1 * env.k], env.k, MPI_UNSIGNED_CHAR, prev_processor, 1, MPI_COMM_WORLD, &requests[2]); // my first real row
-					MPI_Isend(&sub_map[(env.my_process_rows - 2) * env.k], env.k, MPI_UNSIGNED_CHAR, next_processor, 0, MPI_COMM_WORLD, &requests[3]); // my last real row
+				//	MPI_Request requests[4];
 
-					//shift_old_map(sub_map, env.k, env.my_process_rows, shift);
-					static_evolution_inner(sub_map, env.k, env.my_process_rows, shift);
-					MPI_Waitall(4, requests, MPI_STATUSES_IGNORE);
+				//	MPI_Irecv(&sub_map[0], env.k, MPI_UNSIGNED_CHAR, prev_processor, 0, MPI_COMM_WORLD, &requests[0]); // top ghost
+				//	MPI_Irecv(&sub_map[(env.my_process_rows - 1) * env.k], env.k, MPI_UNSIGNED_CHAR, next_processor, 1, MPI_COMM_WORLD, &requests[1]); // bottom ghost
+				//	MPI_Isend(&sub_map[1 * env.k], env.k, MPI_UNSIGNED_CHAR, prev_processor, 1, MPI_COMM_WORLD, &requests[2]); // my first real row
+				//	MPI_Isend(&sub_map[(env.my_process_rows - 2) * env.k], env.k, MPI_UNSIGNED_CHAR, next_processor, 0, MPI_COMM_WORLD, &requests[3]); // my last real row
 
-					static_evolution_border(sub_map, env.k, env.my_process_rows, shift);
+				//	//shift_old_map(sub_map, env.k, env.my_process_rows, shift);
+				//	static_evolution_inner(sub_map, env.k, env.my_process_rows, shift);
+				//	MPI_Waitall(4, requests, MPI_STATUSES_IGNORE);
+
+				//	static_evolution_border(sub_map, env.k, env.my_process_rows, shift);
 		        	}
 
 				/* Process 0 takes screenshot */
@@ -246,6 +255,11 @@ int main(int argc, char** argv)
 				printf("DEBUG: Starting evolution with env.k = %d\n", env.k);
 			}
 	    		for (int i = 0; i < env.n; i++) {
+				static_evolution(sub_map, env.k, env.my_process_rows, shift);
+                        	// Swapping second top and second last rows with neighbours
+                        	MPI_Sendrecv(sub_map + env.k, env.k, MPI_UNSIGNED_CHAR, prev_processor, 0, sub_map + (env.my_process_rows - 1) * env.k, env.k, MPI_UNSIGNED_CHAR, next_processor, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                        	MPI_Sendrecv(sub_map + (env.my_process_rows - 2) * env.k, env.k, MPI_UNSIGNED_CHAR, next_processor, 0, sub_map, env.k, MPI_UNSIGNED_CHAR, prev_processor, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
 			//	// Perform evolution in parallel
 			//	MPI_Request requests[4];
     			//	// Exchange ghost rows with neighbors

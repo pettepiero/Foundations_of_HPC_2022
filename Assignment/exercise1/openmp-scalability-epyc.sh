@@ -2,7 +2,7 @@
 #SBATCH -A dssc
 #SBATCH --job-name=openmp-scal
 #SBATCH --partition=EPYC
-#SBATCH --nodelist=epyc001
+#SBATCH --nodelist=epyc006
 #SBATCH --time=02:00:0
 #SBATCH --cpus-per-task=64
 #SBATCH --nodes=1
@@ -35,11 +35,10 @@ max_num_threads=64
 export OMP_PLACES=cores
 export OMP_PROC_BIND=close
 echo "OMP_PLACES = $OMP_PLACES , OMP_PROC_BIND = $OMP_PROC_BIND"
-export OMP_DISPLAY_ENV=verbose
 
 echo "dim,nthreads,time" > "$output_file"
-#for dim in 10000 15000 20000
-for dim in 2000 4000 8000 16000
+for dim in 10000 15000 20000
+#for dim in 2000 4000 8000 16000
 #for dim in 30000 
 do
         echo "Using dimension $dim"

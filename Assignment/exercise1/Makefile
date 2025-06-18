@@ -1,5 +1,6 @@
 CC = mpicc  
 CFLAGS = -Wall -fstrict-aliasing -Wstrict-aliasing -DUSE_MPI -fno-omit-frame-pointer 
+OPTFLAGS = -O3 -march=native -ffast-math
 SRCDIR = src
 BINDIR = build
 INCDIR = include
@@ -21,16 +22,16 @@ serial: $(OBJS)
 dirs:
 	mkdir -p $(BINDIR) $(OBJDIR) $(IMGDIR) $(SNPDIR)
 $(OBJDIR)/%.o: $(SRCDIR)/%.c | dirs
-	$(CC) $(CFLAGS) $(OMP_FLAGS) -I$(INCDIR) -c $< -o $@
+	$(CC) $(CFLAGS) $(OPTFLAGS) $(OMP_FLAGS) -I$(INCDIR) -c $< -o $@
 
 $(EXEC): $(OBJS)
-	$(CC) $(CFLAGS) $(OMP_FLAGS) $(OBJS) -o $(EXEC)
+	$(CC) $(CFLAGS) $(OPTFLAGS) $(OMP_FLAGS) $(OBJS) -o $(EXEC)
 
 mpiP:	$(OBJS)
-	$(CC) $(CFLAGS) $(OMP_FLAGS) $(OBJS) -o $(EXEC) -lmpiP -liberty -lbfd -lunwind
+	$(CC) $(CFLAGS) $(OPTFLAGS) $(OMP_FLAGS) $(OBJS) -o $(EXEC) -lmpiP -liberty -lbfd -lunwind
 
 noomp: $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -o $(EXEC)
+	$(CC) $(CFLAGS) $(OPTFLAGS) $(OBJS) -o $(EXEC)
 
 clean:
 	rm -f $(OBJDIR)/*.o $(EXEC)
