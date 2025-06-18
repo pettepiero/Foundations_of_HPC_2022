@@ -14,7 +14,7 @@ void 		static_evolution_inner(unsigned char *restrict current,
                             int ncols, int nrows, char shift); 
 void 		static_evolution_border(unsigned char *restrict current,
                              int ncols, int nrows, char shift);
-void            static_evolution(unsigned char *restrict current, int ncols, int nrows, char shift);
+void            static_evolution(int num_steps, unsigned char *restrict current, int ncols, int nrows, char shift, int prev_processor, int next_processor);
 void		update_horizontal_edges(unsigned char *restrict map, const int ncols, const int nrows);
 void            init_to_zero(unsigned char *restrict map1, const int k);
 void 		print_map_to_file(unsigned char *restrict map, const int ncols, const int nrows, const char fileName[]);
