@@ -74,8 +74,8 @@ void print_map_to_file(unsigned char *restrict map, const int ncols, const int n
 }
 
 int is_alive(const unsigned char *value){
-//	printf("DEBUG: passed value = %d to is_alive\n", value);
-	return (*value & 0x80) >> (sizeof(unsigned char)*8 -1);
+	//return (*value & 0x80) >> 7; 
+	return (*value >> 7);
 }
 
 // Defenitely the wrong way to do it but it's a start
@@ -91,9 +91,6 @@ int count_alive_neighbours_multi(const unsigned char *restrict map, const int nc
 		int count0 = is_alive(&map[index - 1]) + is_alive(&map[index + 1]);
 		int count1 = is_alive(&map[prev_row]) + is_alive(&map[prev_row - 1]) + is_alive(&map[prev_row + 1]);
 		int count2 = is_alive(&map[next_row]) + is_alive(&map[next_row - 1]) + is_alive(&map[next_row + 1]);
-		// count1 = is_alive(&map[index - ncols]) + is_alive(&map[index + ncols]);
-		// count2 = is_alive(&map[index - ncols - 1]) + is_alive(&map[index - ncols + 1]);
-		// count3 = is_alive(&map[index + ncols - 1]) + is_alive(&map[index + ncols + 1]);
 		return count0+count1+count2;  
 }
 
@@ -353,7 +350,8 @@ void static_evolution(int num_steps, unsigned char *restrict current, int ncols,
 	shift_old_map(current, ncols, nrows, shift);	
 	/* Create copy of MPI local map (current) but initialize it with OpenMP to place it in the
  	* correct threads */
-	unsigned char *sub_map = (unsigned char*)malloc(ncols*nrows*sizeof(unsigned char));
+	unsigned char *sub_map = NULL; 
+	sub_map = (unsigned char*)malloc(ncols*nrows*sizeof(unsigned char));
 	if (sub_map == NULL){
 		printf("Could not allocate memory for local maps\n");
 		exit(1);
@@ -361,20 +359,18 @@ void static_evolution(int num_steps, unsigned char *restrict current, int ncols,
 
 	#pragma omp parallel 
 	{
-		int i = 0;
-
 		/* Initialize local sub map with OpenMP, to warm up the data properly*/
-		#pragma omp for schedule(static, 4)
+		#pragma omp for schedule(static)
 		for (int i=0; i<nrows*ncols; i++){
 			sub_map[i] = current[i];	
 		}
 
 		for(int iter=0; iter < num_steps; iter++){
 
-			#pragma omp for schedule(static, 4) private(i) 
+			#pragma omp for schedule(static) 
 			for(int row=1; row<nrows-1;row++){ /* Split work with OpenMP over rows */
 				for(int col=1; col < ncols-1; col++){
-					i = row*ncols+col;
+					int i = row*ncols+col;
 					int alive_counter = count_alive_neighbours_multi(sub_map, ncols, i);
 					sub_map[i] += UPDATE_CELL(alive_counter);
 				}
@@ -384,7 +380,7 @@ void static_evolution(int num_steps, unsigned char *restrict current, int ncols,
 				/*Count alive neighbours for left and right
   				 border elements */
 
-				i = row*ncols;
+				int i = row*ncols;
 				left_border_counter = 0;
 				right_border_counter = 0;
 
@@ -422,7 +418,7 @@ void static_evolution(int num_steps, unsigned char *restrict current, int ncols,
 		}
 
 		/* Copy sub_map into current and free sub_map */	
-		#pragma omp for schedule(static, 4) 
+		#pragma omp for schedule(static) 
 		for (int i=0; i<nrows*ncols; i++){
 			current[i] = sub_map[i];	
 		}
