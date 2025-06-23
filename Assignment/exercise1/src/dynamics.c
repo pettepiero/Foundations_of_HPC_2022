@@ -84,26 +84,37 @@ int is_alive(const unsigned char *value){
 //NOTE: receives shifted map!! alive neighbours if its MSB is 1, dead if 0
 int count_alive_neighbours_multi(const unsigned char *restrict map, const int ncols, const int index)
 {
-		// NOTE: indexes that are passed should not be on the edges!
-		// Precompute the row offsets
-		int prev_row = index - ncols;
-		int next_row = index + ncols;
-		int count0 = is_alive(&map[index - 1]) + is_alive(&map[index + 1]);
-		int count1 = is_alive(&map[prev_row]) + is_alive(&map[prev_row - 1]) + is_alive(&map[prev_row + 1]);
-		int count2 = is_alive(&map[next_row]) + is_alive(&map[next_row - 1]) + is_alive(&map[next_row + 1]);
-		return count0+count1+count2;  
+	// NOTE: indexes that are passed should not be on the edges!
+	// Precompute the row offsets
+	int prev_row = index - ncols;
+	int next_row = index + ncols;
+	int count0 = is_alive(&map[index - 1]) + is_alive(&map[index + 1]);
+	int count1 = is_alive(&map[prev_row]) + is_alive(&map[prev_row - 1]) + is_alive(&map[prev_row + 1]);
+	int count2 = is_alive(&map[next_row]) + is_alive(&map[next_row - 1]) + is_alive(&map[next_row + 1]);
+	return count0+count1+count2;  
 }
 
+int count_alive_neighbours_ordered(const unsigned char *restrict map, const int ncols, const int index)
+{
+	// NOTE: indexes that are passed should not be on the edges!
+	// Precompute the row offsets
+	int prev_row = index - ncols;
+	int next_row = index + ncols;
+	int count0 = map[index - 1] + map[index + 1];
+	int count1 = map[prev_row] + map[prev_row - 1] + map[prev_row + 1];
+	int count2 = map[next_row] + map[next_row - 1] + map[next_row + 1];
+	return count0+count1+count2;  
+}
 int count_alive_neighbours_single(const unsigned char *restrict map, const int ncols, const int index)
 {
-    int count = 0;
-    int neighbours[] = {index-1, index+1, index-ncols, index+ncols, 
-                        index-ncols-1, index-ncols+1, index+ncols-1, index+ncols+1};
+	int count = 0;
+    	int neighbours[] = {index-1, index+1, index-ncols, index+ncols, 
+    	                    index-ncols-1, index-ncols+1, index+ncols-1, index+ncols+1};
 
-    for (int i = 0; i < 8; i++) {
-        count += is_alive(&map[neighbours[i]]);
-    }
-    return count;
+    	for (int i = 0; i < 8; i++) {
+    	    count += is_alive(&map[neighbours[i]]);
+    	}
+    	return count;
 }
 
 char update_cell(const int alive_neighbours) {
@@ -111,22 +122,74 @@ char update_cell(const int alive_neighbours) {
     return (alive_neighbours == 2 || alive_neighbours == 3) ? MAXVAL : 0;
 }
 
-void ordered_evolution(unsigned char *restrict map, int ncols, int nrows)
-{
-	int i = 0;
-	int alive_counter = 0;
-    	#ifdef _OPENMP
-		#pragma omp parallel for schedule(static) firstprivate(i, alive_counter)
-	#endif
-	    	for (int row = 1; row < nrows-1; row++)
-	    	{
-	    	    for (int col = 0; col < ncols; col++)
-	    	    {
-	    	        i = row*ncols+ col;
-	    	        alive_counter = count_alive_neighbours_multi(map, ncols, i);
-	    	        map[i] = UPDATE_CELL(alive_counter);
-	    	    }
-	    	}
+void ordered_evolution(int num_steps, unsigned char *restrict map, int ncols, int nrows)
+{   
+	unsigned char *copy_of_map = NULL;
+	copy_of_map = (unsigned char*)malloc(ncols*nrows*sizeof(unsigned char));
+	if (copy_of_map == NULL){
+		printf("Could not allocate memory for local maps\n");
+		exit(1);
+	}
+	#pragma omp parallel
+	{
+		int i = 0;
+		int alive_counter = 0;	
+
+		/* Initialize local copy of map with OpenMP, to warmp up the data properly */
+		# pragma omp for schedule(static)
+		for (int i=0; i<nrows*ncols; i++){
+			copy_of_map[i] = map[i];
+		}
+
+		for (int iter = 0; iter < num_steps; iter++) {
+			#pragma omp for schedule(static) 
+	    		for (int row = 1; row < nrows-1; row++){
+				for (int col = 0; col < ncols; col++){
+					 i = row*ncols+ col;
+				   	 alive_counter = count_alive_neighbours_ordered(copy_of_map, ncols, i);
+				   	 copy_of_map[i] = UPDATE_CELL(alive_counter);
+				}
+				int left_border_counter = 0;
+				int right_border_counter = 0;
+
+				/*Count alive neighbours for left and right
+  				 border elements */
+
+				int i = row*ncols;
+				left_border_counter = 0;
+				right_border_counter = 0;
+
+				left_border_counter += copy_of_map[i-1];
+				left_border_counter += copy_of_map[i+1];
+				left_border_counter += copy_of_map[i+ncols-1];
+				left_border_counter += copy_of_map[i+ncols+1];
+				left_border_counter += copy_of_map[i+ncols];
+				left_border_counter += copy_of_map[i+2*ncols-1]	;
+				left_border_counter += copy_of_map[i-ncols];
+				left_border_counter += copy_of_map[i-ncols+1];
+
+				copy_of_map[i] += UPDATE_CELL(left_border_counter);
+
+				i += ncols -1;
+				right_border_counter += copy_of_map[i+1];
+				right_border_counter += copy_of_map[i-1];
+				right_border_counter += copy_of_map[i+ncols-1];
+				right_border_counter += copy_of_map[i+ncols];
+				right_border_counter += copy_of_map[i-2*ncols+1];
+				right_border_counter += copy_of_map[i-ncols+1];
+				right_border_counter += copy_of_map[i-ncols-1];
+				right_border_counter += copy_of_map[i-ncols];
+			
+				copy_of_map[i] += UPDATE_CELL(right_border_counter);
+	    		}
+		}
+		/* Copy copy_of_map into map and free copy_of_map */
+		#pragma omp for schedule(static)
+		for(int i=0; i<nrows*ncols; i++){
+			map[i] = copy_of_map[i];
+		}
+	}
+	free(copy_of_map);
 }
 
 
@@ -160,193 +223,7 @@ void mask_MSB(unsigned char *restrict map, const int ncols, const int nrows)
 	}
 }
 
-void static_evolution_border(unsigned char *restrict current,
-                             int ncols, int nrows, char shift) {
-	int rows_to_check[2] = {1, nrows - 2}; // first and last interior rows
-	update_horizontal_edges(current, ncols, nrows);
-	shift_old_map(current, ncols, nrows, shift);
-	int i = 0, alive_counter = 0;
-
-	/*Set LSB to 1 for not updated cells that are already 1*/
-	#pragma omp parallel for schedule(static, 4)
-	for (int row=rows_to_check[0]+1; row<rows_to_check[1]; row++){
-		for (int col=1; col< ncols-1; col++){
-			current[row * ncols + col] |= (current[row * ncols + col] & 0x80) >> 7;
-		}
-		i = row*ncols;
-		current[i] |= (current[i] & 0x80) >> 7;
-		i = (row * ncols) + ncols - 1;
-		current[i] |= (current[i] & 0x80) >> 7;
-	}
-	
-	#pragma omp parallel for collapse(2) private(i, alive_counter) schedule(static, 4)
-	for (int r = 0; r < 2; r++) {
-		int row = rows_to_check[r];
-	
-	    	// Interior columns
-	    	for (int col = 1; col < ncols - 1; col++) {
-	    		i = row * ncols + col;
-	    	    	alive_counter = count_alive_neighbours_multi(current, ncols, i);
-	    	    	current[i] += UPDATE_CELL(alive_counter);
-	    	}
-	
-	    	// Left edge
-	    	i = row * ncols;
-		int left_border_counter = 0;
-		int right_border_counter = 0;
-		left_border_counter += is_alive(&current[i-1]);	
-		left_border_counter += is_alive(&current[i+1]);
-		left_border_counter += is_alive(&current[i+ncols-1]);
-		left_border_counter += is_alive(&current[i+ncols+1]);
-		left_border_counter += is_alive(&current[i+ncols]);
-		left_border_counter += is_alive(&current[i+2*ncols-1]);	
-		left_border_counter += is_alive(&current[i-ncols]);
-		left_border_counter += is_alive(&current[i-ncols+1]);
-		current[i] += UPDATE_CELL(left_border_counter);
-
-	    	// Right edge
-		i += ncols -1;
-		right_border_counter += is_alive(&current[i+1]);	
-		right_border_counter += is_alive(&current[i-1]);
-		right_border_counter += is_alive(&current[i+ncols-1]);
-		right_border_counter += is_alive(&current[i+ncols]);	
-		right_border_counter += is_alive(&current[i-2*ncols+1]);	
-		right_border_counter += is_alive(&current[i-ncols+1]);	
-		right_border_counter += is_alive(&current[i-ncols-1]);	
-		right_border_counter += is_alive(&current[i-ncols]);	
-		current[i] += UPDATE_CELL(right_border_counter);
-	}
-	/* Keep only LSB */
-	mask_MSB(current, ncols, nrows);
-}
-
-void static_evolution_inner(unsigned char *restrict current,
-                            int ncols, int nrows, char shift) {
-	int start_row = 2;
-	//int end_row = nrows-2;
-	int end_row = nrows-3;
-
-	if (start_row >= nrows){
-		printf("Error in static_evolution_inner\n");
-		exit(0);
-	}
-	shift_old_map(current, ncols, nrows, shift);	
-	int i = 0;
-
-	/*Set LSB to 1 for not updated cells that are already 1*/
-	for (int row=1; row<start_row; row++){
-		for (int col=1; col< ncols-1; col++){
-			current[row * ncols + col] |= (current[row * ncols + col] & 0x80) >> 7;
-		}
-		i = row*ncols;
-		current[i] |= (current[i] & 0x80) >> 7;
-		i = (row * ncols) + ncols - 1;
-		current[i] |= (current[i] & 0x80) >> 7;
-	}
-	for (int row=end_row+1; row<nrows-1; row++){
-		for (int col=1; col< ncols-1; col++){
-			current[row * ncols + col] |= (current[row * ncols + col] & 0x80) >> 7;
-		}
-		i = row*ncols;
-		current[i] |= (current[i] & 0x80) >> 7;
-		i = (row * ncols) + ncols - 1;
-		current[i] |= (current[i] & 0x80) >> 7;
-	}
-
-	/////////////////////////////////////////////////////////////////////////////////////////
-	
-	#pragma omp for schedule(static, 4)
-    	for (int row = start_row; row < end_row+1; row++) {
-    		for (int col = 1; col < ncols-1; col++) {
-    	    		i = row * ncols + col;
-    	    	    	int alive_counter = count_alive_neighbours_multi(current, ncols, i);
-    	    	    	current[i] += UPDATE_CELL(alive_counter);
-    	    	}
-	}
-
-	if (omp_get_thread_num() == 0) {
-		for (int row = start_row; row <= end_row; row++) {
-			// LEFT border (col = 0)
-			int i = row * ncols;
-			int left_border_counter = 0;
-			left_border_counter += is_alive(&current[i - 1]);
-			left_border_counter += is_alive(&current[i + 1]);
-			left_border_counter += is_alive(&current[i + ncols - 1]);
-			left_border_counter += is_alive(&current[i + ncols + 1]);
-			left_border_counter += is_alive(&current[i + ncols]);
-			left_border_counter += is_alive(&current[i + 2 * ncols - 1]);
-			left_border_counter += is_alive(&current[i - ncols]);
-			left_border_counter += is_alive(&current[i - ncols + 1]);
-			current[i] += UPDATE_CELL(left_border_counter);
-			
-			// RIGHT border (col = ncols - 1)
-			i = row * ncols + ncols - 1;
-			int right_border_counter = 0;
-			right_border_counter += is_alive(&current[i + 1]);
-			right_border_counter += is_alive(&current[i - 1]);
-			right_border_counter += is_alive(&current[i + ncols - 1]);
-			right_border_counter += is_alive(&current[i + ncols]);
-			right_border_counter += is_alive(&current[i - 2 * ncols + 1]);
-			right_border_counter += is_alive(&current[i - ncols + 1]);
-			right_border_counter += is_alive(&current[i - ncols - 1]);
-			right_border_counter += is_alive(&current[i - ncols]);
-			current[i] += UPDATE_CELL(right_border_counter);
-		}
-	}
-
-
-	////////////////////////////////////////////////////////////////////////////////////////
-	
-	//#pragma omp parallel private(i, alive_counter)
-	//{
-	//	/*Update subset of current map*/
-	//	#pragma omp for schedule(static, 4)
-    	//	for (int row = start_row; row < end_row+1; row++) {
-    	//		for (int col = 1; col < ncols-1; col++) {
-    	//	    		i = row * ncols + col;
-    	//	    	    	int alive_counter = count_alive_neighbours_multi(current, ncols, i);
-    	//	    	    	current[i] += UPDATE_CELL(alive_counter);
-    	//	    	}
-	//		int left_border_counter = 0;
-	//		int right_border_counter = 0;
-
-	//		/*Count alive neighbours for left and right
-  	//		 border elements */
-	//		
-	//		i = row*ncols;
-	//		int r = row, c = 0;
-	//		i = r * ncols + c;
-	//	
-	//		left_border_counter += is_alive(&current[i-1]);	
-	//		left_border_counter += is_alive(&current[i+1]);
-	//		left_border_counter += is_alive(&current[i+ncols-1]);
-	//		left_border_counter += is_alive(&current[i+ncols+1]);
-	//		left_border_counter += is_alive(&current[i+ncols]);
-	//		left_border_counter += is_alive(&current[i+2*ncols-1]);	
-	//		left_border_counter += is_alive(&current[i-ncols]);
-	//		left_border_counter += is_alive(&current[i-ncols+1]);
-	//		//current[i] += UPDATE_CELL(left_border_counter);
-
-	//		i += ncols -1;
-	//		right_border_counter += is_alive(&current[i+1]);	
-	//		right_border_counter += is_alive(&current[i-1]);
-	//		right_border_counter += is_alive(&current[i+ncols-1]);
-	//		right_border_counter += is_alive(&current[i+ncols]);	
-	//		right_border_counter += is_alive(&current[i-2*ncols+1]);	
-	//		right_border_counter += is_alive(&current[i-ncols+1]);	
-	//		right_border_counter += is_alive(&current[i-ncols-1]);	
-	//		//right_border_counter += is_alive(&current[i-ncols]);	
-
-	//		current[i] += UPDATE_CELL(right_border_counter);
-	//	}
-	//}
-
-	/* Keep only LSB */
-	mask_MSB(current, ncols, nrows);
-}
-
 void static_evolution(int num_steps, unsigned char *restrict current, int ncols, int nrows, char shift, int prev_processor, int next_processor){
-    /*Performs a single step of the update of the map*/
 	shift_old_map(current, ncols, nrows, shift);	
 	/* Create copy of MPI local map (current) but initialize it with OpenMP to place it in the
  	* correct threads */
@@ -356,7 +233,6 @@ void static_evolution(int num_steps, unsigned char *restrict current, int ncols,
 		printf("Could not allocate memory for local maps\n");
 		exit(1);
 	}
-
 	#pragma omp parallel 
 	{
 		/* Initialize local sub map with OpenMP, to warm up the data properly*/
@@ -423,6 +299,7 @@ void static_evolution(int num_steps, unsigned char *restrict current, int ncols,
 			current[i] = sub_map[i];	
 		}
 	}
+
 	free(sub_map);
 	/* Keep only LSB */
 	mask_MSB(current, ncols, nrows);
@@ -439,35 +316,3 @@ void send_submaps(unsigned char* restrict map, const Env env, const int *rows_pe
 	MPI_Send(map +env.k, (env.my_process_rows-2)*env.k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD);
 }
 
-//void split_initial_matrix(unsigned char* restrict map1, const Env env, const int start_indices[]){
-///* Allocates appropriate memory in each MPI process and
-// * Splits initial matrix bewteen MPI processes
-// */
-//
-//	//Allocate space for local maps
-//	unsigned char *sub_map = (unsigned char*)malloc(env.my_process_rows*env.k*sizeof(unsigned char));
-//	unsigned char *sub_map_copy = (unsigned char*)malloc(env.my_process_rows*env.k*sizeof(unsigned char));
-//		
-//	if (sub_map == NULL || sub_map_copy == NULL){
-//		printf("Process %d error: Could not allocate memory for local maps\n", env.process_rank);
-//		exit(1);
-//	}
-//
-//	/* Initialize local sub matrices with OpenMP, to warm up the data properly*/
-//	#pragma omp parallel for
-//	for (int i=0; i<env.my_process_rows*env.k; i++){
-//		sub_map[i] = 0;	
-//		sub_map_copy[i]=0;
-//	}	
-//	
-//	if (env.process_rank == 0){
-//		/* Sending initial map to every MPI process */
-//		for (int rank = 1; rank < env.size_of_cluster; rank++) {
-//			MPI_Send(map1 + start_indices[rank]*env.k, env.rows_per_processor[rank]*env.k, MPI_UNSIGNED_CHAR, rank, 0, MPI_COMM_WORLD);
-//		}
-//	} else {
-//		MPI_Recv(sub_map, env.my_process_rows * env.k, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-//	}
-//		/* Each process now has its copy of the submap */
-//
-//}

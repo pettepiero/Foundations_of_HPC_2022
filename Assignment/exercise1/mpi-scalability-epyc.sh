@@ -2,13 +2,13 @@
 #SBATCH -A dssc
 #SBATCH --job-name=mpi-scal
 #SBATCH --partition=EPYC
-#SBATCH --nodelist=epyc[001-004]
 #SBATCH --time=02:00:0
 #SBATCH --ntasks-per-node=2 
 #SBATCH --cpus-per-task=64
 #SBATCH --nodes=4
 #SBATCH --exclusive
 #SBATCH --output=./outputs/slurm-%j-mpi-scal-epyc.txt
+#SBATCH --mem=100gb
 module load openMPI/4.1.6
 # 0 -> ordered, 1 -> static
 evolution=1
@@ -23,7 +23,13 @@ fi
 echo "Running game of life with different #MPI tasks"
 echo "to collect data for time/tasks plots"
 
-output_file="./outputs/timings/mpi-scal-$SLURM_JOB_ID.csv"
+# Create a folder with today's date
+today=$(date +%Y-%m-%d)
+output_dir="./outputs/$today"
+mkdir -p "$output_dir/timings"
+
+output_file="$output_dir/timings/mpi-scal-$SLURM_JOB_ID-epyc.csv"
+
 mapping="socket"
 
 echo "mapping by $mapping"
@@ -31,13 +37,15 @@ export OMP_PLACES=cores
 export OMP_PROC_BIND=close
 export OMP_NUM_THREADS=64
 
+num_steps=5000
+
 echo "dim,mpi-tasks,time" > "$output_file"
-for dim in 2000 4000 8000 16000 20000
-do
+for dim in 5000 10000 15000 20000 25000 30000; do
+#for dim in 20000 40000 80000; do 
 	for ntasks in 1 2 4 6 8; do
 		echo "Running $ntasks MPI tasks"
 		    
-		output=$(mpirun --map-by $mapping -n $ntasks ./build/gol.x -i -e $evolution -k $dim -s 0)
+		output=$(mpirun --map-by $mapping -n $ntasks ./build/gol.x -i -n $num_steps -e $evolution -k $dim -s 0)
 		    
 	        time=$(echo "$output" | tail -n 1)
 	        echo "$dim,$ntasks,$time" >> "$output_file"
