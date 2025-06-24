@@ -1,17 +1,17 @@
 #!/bin/bash
 #SBATCH -A dssc
 #SBATCH --job-name=oblas-core-scaling
-#SBATCH --partition=THIN
+#SBATCH --partition=EPYC
 #SBATCH --time=02:00:0
-#SBATCH --cpus-per-task=12
 #SBATCH --ntasks-per-node=1 
+#SBATCH --cpus-per-task=64
 #SBATCH --mem=200gb
 #SBATCH --nodes=1
 #SBATCH --exclusive
 #SBATCH --output=./outputs/output_files/slurm-%j.txt
 
 echo "OpenBLAS core scaling"
-echo "Expecting already compiled executables for THIN architecture"
+echo "Expecting already compiled executables for EPYC architecture"
 echo "********************************"
 echo "Loading modules"
 
@@ -21,13 +21,12 @@ OPENBLASROOT=${OPENBLAS_ROOT}
 export OMP_PLACES=threads
 
 if [ "$1" == "-s" ]; then
-    	output_file="./outputs/core_scaling/oblas-scal-$SLURM_JOB_ID-serial.csv"
+    	output_file="./outputs/core_scaling/oblas-scal-$SLURM_JOB_ID-serial-EPYC.csv"
 else
-	output_file="./outputs/core_scaling/oblas-core-scaling-$SLURM_JOB_ID-init.csv"
+	output_file="./outputs/core_scaling/oblas-core-scaling-$SLURM_JOB_ID-init-EPYC.csv"
 fi
 
 matrix_size=10000
-
 # Add header
 echo "Measurement,Number of CPUs,Seconds,GFLOPS,Precision,Bind(threads)"> "$output_file"
 
@@ -43,7 +42,7 @@ do
 	do
 		echo "Measurement $j"
 	
-		for ((i=1;i<=12;i+=1))
+		for ((i=1;i<=64;i*=2))
 		do
 	
 			echo "Iteration $i"
