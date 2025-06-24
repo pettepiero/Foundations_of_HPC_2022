@@ -144,6 +144,7 @@ int main(int argc, char** argv)
  	* ORDERED EVOLUTION 
  	* ********************************************************/
 	if ((env.e == ORDERED) && (process_rank ==0)){
+		tstart= CPU_TIME;
 		if (env.s != 0){
 			/* Outer loop, takes screenshot at each iteration */
 			for (int iter = 0; iter < env.n; iter += env.s) {
@@ -156,14 +157,15 @@ int main(int argc, char** argv)
 				sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", iter + env.s - 1);
 				write_pgm_image(full_map, MAXVAL, env.k, env.nrows, snapshot_name);
 			}
-
 		} else { /* In this case the whole evolution is performed without snapshots until the very end */ 
-			tstart= CPU_TIME;
 			ordered_evolution(env.n, full_map, env.k, env.nrows);
-			tend = CPU_TIME;
-			ex_time = tend-tstart;
-			printf("\n\n%f\n\n", ex_time);
+			update_horizontal_edges(full_map, env.k, env.nrows);
+			sprintf(snapshot_name, "images/snapshots/snapshot_%05d.pgm", env.n -1);
+			write_pgm_image(full_map, MAXVAL, env.k, env.nrows, snapshot_name);
 		}
+		tend = CPU_TIME;
+		ex_time = tend-tstart;
+		printf("\n\n%f\n\n", ex_time);
 
 	/**********************************************************
  	* STATIC EVOLUTION 
@@ -187,7 +189,6 @@ int main(int argc, char** argv)
 			for (int rank = 1; rank < env.size_of_cluster; rank++) {
 				MPI_Send(full_map + start_indices[rank]*env.k, rows_per_processor[rank]*env.k, MPI_UNSIGNED_CHAR, rank, 0, MPI_COMM_WORLD);
 			}
-		//	memcpy(sub_map + start_indices[process_rank]*env.k, full_map, env.my_process_rows*env.k);
 			memcpy(sub_map, full_map + start_indices[process_rank]*env.k, env.my_process_rows * env.k);
 
 		} else {

@@ -12,7 +12,7 @@
 
 module load openMPI/4.1.6
 # 0 -> ordered, 1 -> static
-evolution=0
+evolution=1
 if [evolution==0]; then
 	echo "OpenMP scalability for ordered evolution"
 fi
