@@ -14,17 +14,29 @@ echo "OpenBLAS core scaling"
 echo "Expecting already compiled executables for THIN architecture"
 echo "********************************"
 echo "Loading modules"
+
 module load openBLAS/0.3.26-omp
 
 OPENBLASROOT=${OPENBLAS_ROOT}
 export OMP_PLACES=threads
 
-output_file="./outputs/core_scaling/oblas-core-scaling-$SLURM_JOB_ID-init.csv"
+if [ "$1" == "-s" ]; then
+    	output_file="./outputs/core_scaling/oblas-scal-$SLURM_JOB_ID-serial.csv"
+else
+	output_file="./outputs/core_scaling/oblas-core-scaling-$SLURM_JOB_ID-init.csv"
+fi
+
 matrix_size=10000
+
 # Add header
 echo "Measurement,Number of CPUs,Seconds,GFLOPS,Precision,Bind(threads)"> "$output_file"
 
-for binding in 'close' 'spread'
+bindings_tested="close spread"
+bindings_list=$(echo $bindings_tested | tr ' ' ',')
+data="$SLURM_JOB_ID,$OMP_PLACES,$matrix_size,$bindings_list,$output_file"
+echo "$data" > "./outputs/metadata/oblas-metadata-$SLURM_JOB_ID.txt"
+
+for binding in $bindings_tested 
 do
 	export OMP_PROC_BIND=$binding
 	for ((j=1;j<=5;j+=1))

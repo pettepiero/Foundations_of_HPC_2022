@@ -13,17 +13,28 @@
 echo "BLIS core scaling"
 echo "Expecting already compiled executables for EPYC architecture"
 echo "********************************"
+echo "Loading modules"
 
 export LD_LIBRARY_PATH=/u/dssc/ppette00/myblis/lib:$LD_LIBRARY_PATH
 export OMP_PLACES=threads
 
-output_file="./outputs/core_scaling/blis-core-scaling-$SLURM_JOB_ID-EPYC.csv"
+if [ "$1" == "-s" ]; then
+    	output_file="./outputs/core_scaling/blis-scal-$SLURM_JOB_ID-serial-EPYC.csv"
+else
+	output_file="./outputs/core_scaling/blis-core-scaling-$SLURM_JOB_ID-init-EPYC.csv"
+fi
+
 matrix_size=10000
 
 # Add header
 echo "Measurement,Number of CPUs,Seconds,GFLOPS,Precision,Bind(threads)"> "$output_file"
 
-for binding in 'close' 'spread'
+bindings_tested="close spread"
+bindings_list=$(echo $bindings_tested | tr ' ' ',')
+data="$SLURM_JOB_ID,$OMP_PLACES,$matrix_size,$bindings_list,$output_file"
+echo "$data" > "./outputs/metadata/blis-metadata-$SLURM_JOB_ID.txt"
+
+for binding in $bindings_tested 
 do
 	echo "Binding $binding"
 	export OMP_PROC_BIND=$binding
@@ -33,7 +44,6 @@ do
 	
 		for ((i=1;i<=64;i*=2))
 		do
-	
 			echo "Iteration $i"
 			export BLIS_NUM_THREADS=$i # check out: https://github.com/flame/blis/blob/master/docs/Multithreading.md
 		
